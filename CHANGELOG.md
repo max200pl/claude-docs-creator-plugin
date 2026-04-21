@@ -2,6 +2,26 @@
 
 All notable changes to the `claude-docs-creator` plugin. Format loosely follows [Keep a Changelog](https://keepachangelog.com) and [Semantic Versioning](https://semver.org).
 
+## 0.11.2 — 2026-04-21
+
+Auto-patch-bump in the publish GitHub Action — removes the "forgot-to-bump" mistake class.
+
+### Added
+
+- `.github/workflows/publish-plugin.yml` now inspects private and public plugin versions before sync. If a plugin-layer change reached `main` without an explicit bump in `.claude-plugin/plugin.json`, the Action automatically bumps **patch** in the public repo's manifests (`plugin.json` + both fields in `marketplace.json`). Public commit message documents the auto-bump with the before/after versions. Manual `minor`/`major` bumps in the private repo are detected (version mismatch) and respected — no double-bump.
+
+### Changed
+
+- Private and public plugin versions may diverge by patch increments after the first auto-bump. This is by design: private tracks author-intent releases (minor/major bumps), public tracks every distribution checkpoint. Release-engineering discipline for `minor`/`major` bumps stays fully manual — edit `plugin.json` in the private repo as before.
+
+### Release-workflow summary
+
+| Change type | Where author edits version | What happens |
+| ---- | ---- | ---- |
+| Docs typo, small fix, dependency tweak | — (don't edit version) | On push, GHA auto-bumps patch in public. |
+| New feature, scoped rule, new subagent | — (don't edit version — auto-patch is fine) OR manual bump minor in private | Public advances to the same minor as private, or to next patch. |
+| Breaking change to skill API | Manual bump major in private's `plugin.json` before push | Public matches private's new major version. |
+
 ## 0.11.1 — 2026-04-21
 
 Public-distribution preparation + /init-project hotfix.
