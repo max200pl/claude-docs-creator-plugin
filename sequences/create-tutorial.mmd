@@ -1,0 +1,58 @@
+---
+title: "Sequence Diagram: /create-tutorial Skill"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    actor User
+    participant Claude
+    participant FS as File System
+    participant Grep
+
+    User->>Claude: /create-tutorial <topic> [level]
+
+    alt No topic provided
+        Claude->>User: What topic should the tutorial cover?<br/>(skill name / concept / workflow)
+        User->>Claude: topic
+    end
+
+    note over Claude: Resolve level
+    Claude->>Claude: default level = beginner<br/>(beginner / intermediate / reference)
+
+    note over Claude,FS: Check for existing tutorial
+    Claude->>FS: Glob docs/tutorial-<slug>.md
+    FS-->>Claude: Exists / not found
+
+    alt Tutorial exists
+        Claude->>FS: Read existing file
+        FS-->>Claude: Previous content + date
+        Claude->>User: Update existing or create new version?
+        User->>Claude: choice
+    end
+
+    note over Claude,Grep: Gather real source material
+    Claude->>Grep: Find related SKILL.md / rules / docs<br/>for the topic
+    Grep-->>Claude: Paths to read
+    Claude->>FS: Read each source
+    FS-->>Claude: Real snippets + commands<br/>to quote verbatim
+
+    note over Claude: Compose tutorial
+    Claude->>Claude: Apply template:<br/>What & Why → Prerequisites →<br/>Core Concepts (beginner only) →<br/>Steps → Exercise → Verify →<br/>Common Mistakes → Next Steps
+
+    note over Claude: Adapt to audience
+    alt level = beginner
+        Claude->>Claude: Define every term,<br/>more exposition, 200-400 lines
+    else level = intermediate
+        Claude->>Claude: Skip intro jargon,<br/>show tradeoffs, 100-200 lines
+    else level = reference
+        Claude->>Claude: Table-heavy cheatsheet,<br/>no exposition, 50-100 lines
+    end
+
+    note over Claude,FS: Save
+    Claude->>FS: Write docs/tutorial-<slug>.md
+    FS-->>Claude: OK
+
+    note over Claude,FS: Verify
+    Claude->>FS: Confirm file exists,<br/>counts lines, checks frontmatter
+    FS-->>Claude: OK
+
+    Claude->>User: Summary box with<br/>file path, line count,<br/>level, key sections

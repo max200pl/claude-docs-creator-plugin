@@ -1,0 +1,87 @@
+---
+title: "Sequence Diagram: /create-docs Skill"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    actor User
+    participant Claude
+    participant FS as File System
+    participant Glob as Glob Tool
+
+    User->>Claude: /create-docs [type] [name] [description]
+
+    alt No type provided
+        Claude->>User: What do you want to create?<br/>(rule / skill / agent / settings / claude-md)
+        User->>Claude: type [name]
+    end
+
+    note over Claude,Glob: Detect project stack
+    Claude->>Glob: Scan root for marker files<br/>(*.sln, go.mod, Cargo.toml,<br/>package.json, pyproject.toml)
+    Glob-->>Claude: Matched markers
+    Claude->>FS: Read formatter/linter configs
+    FS-->>Claude: Format + lint settings
+    Claude->>Glob: Check for CI configs
+    Glob-->>Claude: CI pipeline info
+    Claude->>Claude: Resolve stack: language +<br/>framework + commands
+
+    note over Claude,FS: Read references
+    Claude->>FS: Read how-to-create-docs.md
+    FS-->>Claude: Structure, frontmatter, examples
+    Claude->>FS: Read markdown-style.md
+    FS-->>Claude: Formatting conventions
+
+    note over Claude,Glob: Gather context
+    alt type = rule
+        Claude->>Glob: Verify paths: globs match files
+        Glob-->>Claude: Matched files list
+    else type = skill
+        opt No description in $ARGUMENTS
+            Claude->>User: What should the skill do?
+            User->>Claude: Description of the workflow
+        end
+    else type = agent
+        Claude->>User: Which tools and model?
+        User->>Claude: tools + model preferences
+    else type = settings
+        Claude->>FS: Check settings.json exists?
+        FS-->>Claude: Existing or not found
+    else type = claude-md
+        Claude->>FS: Check CLAUDE.md exists?
+        FS-->>Claude: Existing or not found
+        Claude->>FS: Read project root structure
+        FS-->>Claude: Directory tree
+    end
+
+    note over Claude,FS: Generate file
+    Claude->>Claude: Build content:<br/>kebab-case frontmatter,<br/>stack-specific globs/commands
+    alt type = rule
+        Claude->>FS: Write rules/name.md
+    else type = skill
+        Claude->>FS: Write skills/name/SKILL.md
+    else type = agent
+        Claude->>FS: Write agents/name.md
+    else type = settings
+        Claude->>FS: Write/merge settings.json
+    else type = claude-md
+        Claude->>FS: Write CLAUDE.md
+    end
+
+    note over Claude,Glob: Verify
+    Claude->>FS: Check file at correct path
+    FS-->>Claude: OK
+
+    opt type = rule with paths:
+        Claude->>Glob: Confirm globs match files
+        Glob-->>Claude: Match count > 0
+    end
+
+    opt type = skill
+        Claude->>FS: Confirm supporting files exist
+        FS-->>Claude: OK
+    end
+
+    opt type = claude-md
+        Claude->>Claude: Confirm no remaining<br/>placeholders
+    end
+
+    Claude->>User: [CREATED] .claude/path — summary<br/>[STACK] Detected: language + framework

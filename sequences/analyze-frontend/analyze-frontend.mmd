@@ -1,0 +1,91 @@
+---
+title: "analyze-frontend — Detect frontends + per-frontend parallel analysis + write artefacts + report"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    actor User
+    participant Claude
+    participant FS as File System
+    participant Glob as Glob Tool
+    participant FD as frontend-detector<br/>subagent
+    participant Specs as 5 specialist subagents<br/>(parallel fan-out per frontend):<br/>tech-stack-profiler,<br/>design-system-scanner,<br/>component-inventory,<br/>data-flow-mapper,<br/>architecture-analyzer
+
+    User->>Claude: /analyze-frontend [frontend-path] [--only <area>]
+
+    note over Claude: Capture start timestamp<br/>(used by Report phase for wall_clock_sec)
+    Claude->>Claude: START_TS = date +%s<br/>RUN_TS = date -u +%Y%m%dT%H%M%SZ<br/>DISPLAY_TS = date +%Y%m%d-%H%M%S
+
+    note over Claude,FS: Preflight
+    Claude->>FS: Check cwd for CLAUDE.md<br/>and .claude/ directory
+    FS-->>Claude: present / absent
+    alt .claude/ absent
+        Claude->>User: This project has no .claude/ yet.<br/>Run /init-project first<br/>(it detects frontends and suggests this)
+        break Skill aborts
+            Claude->>User: Aborted — run /init-project first
+        end
+    end
+
+    note over Claude,FD: Phase: Detect frontends
+    Claude->>FD: Invoke with<br/>{project_root, user_hint_path}
+    Note right of FD: Scans for package.json + framework<br/>manifest (vite.config.*, next.config.*,<br/>angular.json, svelte.config.*,<br/>nuxt.config.*, astro.config.*, etc.).<br/>Returns flat list.
+    FD-->>Claude: {frontend_roots: [{path, framework, entry_points}]}
+
+    alt No frontends detected
+        Claude->>User: No frontend roots found.<br/>Skill aborts.
+        break Skill aborts
+            Claude->>User: Nothing to analyze
+        end
+    end
+
+    note over Claude,User: Phase: Confirm scope
+    Claude->>User: Found N frontend(s):<br/>- path (framework)<br/>...<br/>Analyze all? Skip any? Add missed?
+    User-->>Claude: Confirmed roots[]<br/>+ optional --only <area> filter
+
+    note over Claude,Specs: Phase: Parallel deep analysis (fan-out)
+    Note right of Claude: Inner loop: for each confirmed frontend.<br/>Outer: for each specialist subagent type.<br/>All 5 × N invocations issued in<br/>a single message (concurrent).
+
+    par For each {frontend_root, specialist} pair — concurrent
+        Claude->>Specs: Invoke one specialist with<br/>{frontend_root, project_root,<br/>framework_hint, entry_points,<br/>style_rules_path}
+        Note right of Specs: Subagent reads only its area-<br/>specific files. Deep reads stay<br/>in subagent context.
+        Specs-->>Claude: {summary_row (YAML),<br/>artefact_body (markdown)}<br/>or sentinel SKIP if N/A
+    end
+
+    note over Claude,FS: Phase: Collect and write artefacts
+    Claude->>Claude: Aggregate per-frontend results<br/>→ if N_frontends == 1: plain filenames<br/>→ if N_frontends > 1: suffix with root name
+
+    opt design-system-scanner produced content
+        Claude->>FS: Write .claude/rules/frontend-design-system[-<root>].md<br/>(with paths: scoped to theme/token files)
+        FS-->>Claude: OK
+    end
+    opt component-inventory produced content
+        Claude->>FS: Write .claude/rules/frontend-components[-<root>].md<br/>(with paths: scoped to components folders)
+        FS-->>Claude: OK
+    end
+    opt architecture-analyzer or tech-stack-profiler produced content
+        Claude->>FS: Write .claude/docs/architecture-frontend[-<root>].md
+        FS-->>Claude: OK
+    end
+    opt component-inventory produced table
+        Claude->>FS: Write .claude/docs/component-inventory[-<root>].md
+        FS-->>Claude: OK
+    end
+    opt data-flow-mapper produced diagram
+        Claude->>FS: Write .claude/sequences/frontend-data-flow[-<root>].mmd
+        FS-->>Claude: OK
+    end
+
+    note over Claude,FS: Phase: Update root CLAUDE.md Architecture section
+    Claude->>FS: Read current root CLAUDE.md
+    FS-->>Claude: existing content
+    Claude->>Claude: Surgical update of Architecture section:<br/>add `@` imports to the new artefacts<br/>— do NOT touch other sections
+    Claude->>FS: Write updated CLAUDE.md
+    FS-->>Claude: OK
+
+    note over Claude,FS: Phase: Report — write file + show dashboard
+    Claude->>Claude: END_TS = date +%s<br/>wall_clock_sec = END_TS - START_TS
+    Claude->>FS: Collect artefact list<br/>(wc -l on each created/updated file)
+    FS-->>Claude: Paths + line counts
+    Claude->>FS: Write .claude/state/reports/<br/>analyze-frontend-DISPLAY_TS.md<br/>(per rules/report-format.md —<br/>first line machine-diff comment,<br/>body with Summary / Phase Timings /<br/>Per-frontend findings / Artefacts /<br/>Next-step recommendations)
+    FS-->>Claude: Report saved
+
+    Claude->>User: Dashboard with stats<br/>(Frontends analyzed, Stack-per-root,<br/>Artefacts written, Duration,<br/>Report path)<br/>+ next steps:<br/>/create-docs rule ...<br/>/update-docs --refresh frontend

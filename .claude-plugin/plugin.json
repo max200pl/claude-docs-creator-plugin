@@ -1,0 +1,11 @@
+{
+  "name": "claude-docs-creator",
+  "description": "Toolkit for authoring, validating, and maintaining .claude/ documentation in any project. Bundles skills for /init-project, /create-docs, /update-docs, /validate-claude-docs, /status, /analyze-frontend, /create-mermaid, /research, /create-steps, /create-tutorial, a fleet of specialist subagents (module-documenter, frontend-detector, tech-stack-profiler, design-system-scanner, component-inventory, data-flow-mapper, architecture-analyzer), and governance rules for docs-folder-structure, toolkit-workflow, and report-format.",
+  "version": "0.11.1",
+  "author": {
+    "name": "Maksym Poskannyi"
+  },
+  "homepage": "https://github.com/max200pl/claude-docs-creator-plugin",
+  "repository": "https://github.com/max200pl/claude-docs-creator-plugin",
+  "license": "MIT"
+}

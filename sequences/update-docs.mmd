@@ -1,0 +1,82 @@
+---
+title: "Sequence Diagram: /update-docs Skill"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    actor User
+    participant Claude
+    participant Status as /status
+    participant Validate as /validate-claude-docs
+    participant FS as File System
+    participant Glob as Glob Tool
+
+    User->>Claude: /update-docs <project-path> [mode]
+
+    note over Claude: Capture start timestamp<br/>(used by Report phase for wall_clock_sec)
+    Claude->>Claude: START_TS = date +%s<br/>RUN_TS = date -u +%Y%m%dT%H%M%SZ<br/>DISPLAY_TS = date +%Y%m%d-%H%M%S
+
+    note over Claude: Preflight<br/>follow api-skill-preflight
+
+    note over Claude,Status: Phase: Inventory — delegate
+    Claude->>Status: run /status <project-path>
+    Status-->>Claude: stats, coverage,<br/>staleness, issue hints
+
+    note over Claude,Validate: Phase: Validate — delegate
+    alt mode = report
+        Claude->>Validate: run /validate-claude-docs <path><br/>(no fix)
+    else
+        Claude->>Validate: run /validate-claude-docs <path> fix
+    end
+    Validate-->>Claude: issues + trivial fixes applied
+
+    note over Claude,Glob: Phase: Detect drift (unique)
+    Claude->>Glob: re-scan stack markers,<br/>module list, paths: globs,<br/>@path imports
+    Glob-->>Claude: current code state
+    Claude->>FS: read CLAUDE.md sections,<br/>module CLAUDE.md, rule frontmatter
+    FS-->>Claude: documented state
+    Claude->>Claude: diff → drift list<br/>(stack / modules / paths / imports / commands)
+
+    note over Claude: Phase: Build update plan (unique)
+    Claude->>Claude: classify drift items<br/>safe-auto / needs-review / destructive
+
+    alt mode = report
+        Claude->>User: show plan, no writes
+    else mode = auto
+        Claude->>Claude: apply safe, prompt on review + destructive
+    else interactive (default)
+        Claude->>User: show plan box, per-item prompt
+        User->>Claude: choices
+    end
+
+    note over Claude,FS: Phase: Apply drift updates (unique)
+    opt Stack / build commands drifted
+        Claude->>FS: refresh Build & Run in CLAUDE.md
+    end
+    opt Directory tree drifted
+        Claude->>FS: refresh Project Structure
+    end
+    opt New modules
+        Claude->>FS: create module CLAUDE.md
+    end
+    opt Removed modules (approved)
+        Claude->>FS: delete orphan module CLAUDE.md
+    end
+    opt Rule paths: globs broken
+        Claude->>FS: rewrite paths: or flag for review
+    end
+    opt Dead @path imports
+        Claude->>FS: remove broken imports
+    end
+
+    note over Claude,Validate: Phase: Verify — delegate
+    Claude->>Validate: run /validate-claude-docs <path><br/>(no fix — just confirm clean)
+    Validate-->>Claude: post-state report
+
+    note over Claude,FS: Phase: Report (unique) — write file + show dashboard
+    Claude->>Claude: END_TS = date +%s<br/>wall_clock_sec = END_TS - START_TS
+    Claude->>FS: Collect artefact list<br/>(created / modified / deleted with wc -l)
+    FS-->>Claude: Paths + line counts
+    Claude->>FS: Write .claude/state/reports/<br/>update-docs-DISPLAY_TS.md<br/>(per rules/report-format.md —<br/>first line machine-diff comment,<br/>body with Summary / Phase Timings /<br/>Drift kinds / Artefacts / Next-step)
+    FS-->>Claude: Report saved
+
+    Claude->>User: update report dashboard<br/>[FIX] / [UPDATED] / [SKIPPED]<br/>+ wall_clock_sec<br/>+ saved report path<br/>+ next steps

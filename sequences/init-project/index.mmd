@@ -1,0 +1,26 @@
+---
+title: "Sequence Diagram: /init-project — Overview"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    actor User
+    participant Claude
+    participant FS as File System
+    participant Glob as Glob Tool
+
+    User->>Claude: /init-project [modules-path]
+
+    note over Claude,FS: Scaffold .claude structure
+    note over Claude,Glob: Detect stack
+    note over Claude,Glob: Detect monorepo
+    note over Claude,Glob: Discover modules
+    note over Claude,Glob: Detect logical layers
+
+    note over Claude,FS: Analyze architecture
+    note over Claude,FS: Create CLAUDE.md
+    note over Claude,Glob: Create module CLAUDE.md files
+
+    note over Claude,FS: Update settings
+    note over Claude,User: Report
+
+    Note right of Claude: Details in:<br/>detection-and-discovery.mmd<br/>generation-and-report.mmd

@@ -1,0 +1,65 @@
+---
+title: "init-project — Analyze + Create CLAUDE.md + Modules + Settings + Report"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    actor User
+    participant Claude
+    participant FS as File System
+    participant Glob as Glob Tool
+    participant MD as module-documenter<br/>subagent (fan-out)
+
+    note over Claude,FS: Analyze architecture
+    Claude->>FS: Scan headers/exports
+    FS-->>Claude: Public interfaces
+    Claude->>Claude: Map dependencies +<br/>communication patterns
+
+    note over Claude,FS: Create CLAUDE.md
+    Claude->>Claude: Build compact overview<br/>(under 200 lines, @path imports)
+    Claude->>FS: Write CLAUDE.md
+    FS-->>Claude: OK
+
+    Claude->>User: CLAUDE.md created (N lines)<br/>Review? Test build commands?
+    User-->>Claude: Approve or request edits
+
+    note over Claude,MD: Create module CLAUDE.md files (fan-out)
+    Claude->>Claude: Filter modules:<br/>skip trivial (<5 files);<br/>remaining = non_trivial_modules
+    Note right of Claude: Deep scan + generation moved out of<br/>main context — one subagent per module<br/>runs in parallel (per rules/fan-out cap)
+
+    par For each non-trivial module (parallel fan-out)
+        Claude->>MD: Invoke with<br/>{module_path, project_root,<br/>stack_summary, project_type,<br/>hub_module_name, rpc_layer_hint,<br/>conventions_summary}
+        Note right of MD: Subagent reads public interface,<br/>deps, reverse-deps, sub-structure,<br/>patterns — in its OWN context
+        MD-->>Claude: {summary_row (YAML),<br/>claude_md_content (markdown body)}
+    end
+
+    Claude->>Claude: Aggregate summary_rows<br/>→ module-table for the dashboard<br/>→ drop entries where content = "SKIP"
+
+    loop For each non-SKIP content (batch write)
+        Claude->>FS: Write module/CLAUDE.md<br/>(verbatim from subagent output)
+        FS-->>Claude: OK
+    end
+
+    Claude->>User: Created N module CLAUDE.md<br/>files (skipped M trivial)
+
+    note over Claude,FS: Update settings
+    Claude->>FS: Update .claude/settings.json<br/>(stack-specific permissions)
+    FS-->>Claude: OK
+
+    note over Claude,FS: Report — write file + show dashboard
+    Claude->>Claude: END_TS = date +%s<br/>wall_clock_sec = END_TS - START_TS
+    Claude->>FS: Collect artefact list<br/>(wc -l on each created file)
+    FS-->>Claude: Paths + line counts
+    Claude->>FS: Write .claude/state/reports/<br/>init-project-DISPLAY_TS.md<br/>(per rules/report-format.md —<br/>first line machine-diff comment,<br/>body with Summary/Phase Timings/<br/>Artefacts/Next-step)
+    FS-->>Claude: Report saved
+
+    Claude->>User: Dashboard with stats<br/>(Type, Stack, Duration, CLAUDE.md,<br/>Modules, Settings, Report path)<br/>+ next steps:<br/>/create-docs rule ...<br/>/create-mermaid sequence ...
+
+    opt has_frontend flag set (from Pass 2b)
+        Claude->>User: Frontend detected at candidate(s)<br/>Run /analyze-frontend now? [y/n/d]
+        alt User accepts (y)
+            Claude->>Claude: Invoke /claude-docs-creator:analyze-frontend<br/>(passes first candidate path as argument)
+            Note right of Claude: Analysis runs inline —<br/>generates frontend-specific<br/>rules + docs + data-flow diagram
+        else User declines (n or d)
+            Claude->>Claude: Append Notes entry to run report:<br/>"Frontend(s) detected at X but<br/>/analyze-frontend declined —<br/>user can run it later"
+        end
+    end

@@ -1,0 +1,54 @@
+---
+title: "Sequence Diagram: /research Skill"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    actor User
+    participant Claude
+    participant Web as Web Search
+    participant FS as File System
+
+    User->>Claude: /research <topic> [context]
+
+    note over Claude,FS: Check existing research
+    Claude->>FS: Check docs/research-<slug>.md
+    FS-->>Claude: Exists / not found
+
+    alt Report exists
+        Claude->>FS: Read existing report
+        FS-->>Claude: Previous findings + date
+        Claude->>Claude: Plan: update with<br/>new findings
+    else No existing report
+        Claude->>Claude: Plan: create new report
+    end
+
+    note over Claude,Web: Search official sources
+    Claude->>Web: Search official docs<br/>for <topic>
+    Web-->>Claude: Official documentation
+    Claude->>Claude: Extract key facts +<br/>real URLs
+
+    note over Claude,Web: Search community sources
+    Claude->>Web: Search community guides,<br/>blog posts, GitHub repos
+    Web-->>Claude: Community content
+    Claude->>Claude: Cross-reference across<br/>3+ sources
+
+    note over Claude,Claude: Analyze findings
+    Claude->>Claude: Structure findings into<br/>sections with specifics
+    Claude->>Claude: Build gaps table<br/>with priorities
+    Claude->>Claude: Write actionable<br/>recommendations
+
+    opt Context references a skill or feature
+        Claude->>FS: Read current skill/feature
+        FS-->>Claude: Current implementation
+        Claude->>Claude: Compare current state<br/>vs research findings
+    end
+
+    note over Claude,FS: Save report
+    alt Updating existing
+        Claude->>FS: Update research-<slug>.md<br/>(add findings, update date)
+    else New report
+        Claude->>FS: Write research-<slug>.md
+    end
+    FS-->>Claude: OK
+
+    Claude->>User: Summary box with<br/>key findings, source count,<br/>gaps found, file path

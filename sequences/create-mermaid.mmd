@@ -1,0 +1,56 @@
+---
+title: "Sequence Diagram: /create-mermaid Skill"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    actor User
+    participant Claude
+    participant FS as File System
+
+    User->>Claude: /create-mermaid [type] [name] [description]
+
+    alt No type provided
+        Claude->>Claude: Infer best diagram type<br/>from description
+    end
+
+    note over Claude,FS: Read rules
+    Claude->>FS: Read mermaid-style.md
+    FS-->>Claude: Style constraints
+    Claude->>FS: Read how-to-create-mermaid.md
+    FS-->>Claude: Full guide + examples
+
+    note over Claude,FS: Analyze subject
+    alt User describes a flow or process
+        Claude->>Claude: Choose sequence or flow
+    else User describes states or lifecycle
+        Claude->>Claude: Choose state
+    else User describes structure
+        Claude->>Claude: Choose class or er
+    end
+
+    opt User references code
+        Claude->>FS: Read relevant source files
+        FS-->>Claude: Real architecture
+    end
+
+    opt User references a skill or agent
+        Claude->>FS: Read SKILL.md / agent .md
+        FS-->>Claude: Workflow to diagram
+    end
+
+    note over Claude,FS: Generate .mmd file
+    Claude->>Claude: Build diagram:<br/>neutral theme, no hardcoded colors,<br/>participants declared first,<br/>max 10 participants
+    alt Sequence diagram for a skill
+        Claude->>FS: Write sequences/name.mmd
+    else Other diagram
+        Claude->>FS: Write docs/name.mmd
+    end
+    FS-->>Claude: OK
+
+    note over Claude,FS: Verify
+    Claude->>FS: Read generated file
+    FS-->>Claude: Content
+
+    Claude->>Claude: Check: neutral theme present,<br/>no rect rgb, no inline styles,<br/>no hardcoded colors
+
+    Claude->>User: [CREATED] path/name.mmd<br/>[THEME] neutral (light + dark compatible)
