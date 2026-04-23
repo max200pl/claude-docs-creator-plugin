@@ -5,27 +5,21 @@
   },
   "metadata": {
     "description": "Marketplace for claude-docs-creator — the .claude/ documentation authoring + validation toolkit.",
-    "version": "0.13.1"
+    "version": "0.12.0"
   },
   "plugins": [
     {
       "name": "claude-docs-creator",
       "source": "./",
       "description": "Authoring, validation, and drift-detection for .claude/ docs in any project, plus automated frontend analysis optimized for downstream component-creation agents. Ships 10 public skills (init-project, create-docs, update-docs, validate-claude-docs, status, analyze-frontend, create-mermaid, research, create-steps, create-tutorial), 9 agents (doc-reviewer, module-documenter, frontend-detector, tech-stack-profiler, design-system-scanner, component-inventory, data-flow-mapper, architecture-analyzer, framework-idiom-extractor), 10 scoped rules, 6 hooks, and a set of reference docs + tutorials. /analyze-frontend uses a two-wave flow (stack profile → stack-informed specialists) and produces a prescriptive component-creation-template.md — the primary context envelope for agents that create new components.",
-      "version": "0.13.1",
+      "version": "0.12.0",
       "author": {
         "name": "Maksym Poskannyi"
       },
       "homepage": "https://github.com/max200pl/claude-docs-creator-plugin",
       "repository": "https://github.com/max200pl/claude-docs-creator-plugin",
       "license": "MIT",
-      "keywords": [
-        "documentation",
-        "claude-code",
-        "toolkit",
-        "context-compression",
-        "plugin-authoring"
-      ],
+      "keywords": ["documentation", "claude-code", "toolkit", "context-compression", "plugin-authoring"],
       "category": "developer-tools"
     }
   ]
