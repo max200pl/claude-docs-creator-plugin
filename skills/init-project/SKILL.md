@@ -491,8 +491,8 @@ Next steps:
   │  Run /analyze-frontend to generate:                       │
   │    .claude/rules/frontend-design-system.md                │
   │    .claude/rules/frontend-components.md                   │
-  │    .claude/docs/architecture-frontend.md                  │
-  │    .claude/docs/component-inventory.md                    │
+  │    .claude/docs/reference-architecture-frontend.md                  │
+  │    .claude/docs/reference-component-inventory.md                    │
   │    .claude/sequences/frontend-data-flow.mmd               │
   │                                                           │
   │  [y] run now   [n] skip   [d] defer (remind later)        │

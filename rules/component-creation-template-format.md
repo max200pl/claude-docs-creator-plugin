@@ -2,7 +2,7 @@
 
 ## Rule
 
-The `/analyze-frontend` skill's primary output is a single narrative file — `.claude/docs/component-creation-template.md` in the target project — that serves as **the context envelope for a downstream component-creation agent**.
+The `/analyze-frontend` skill's primary output is a single narrative file — `.claude/docs/reference-component-creation-template.md` in the target project — that serves as **the context envelope for a downstream component-creation agent**.
 
 This rule defines the required shape of that file. Other frontend-analysis artefacts (design system, inventory, data flow, architecture) are **supporting reference data** that the template cross-links to via `@`-imports, not independent deliverables.
 
@@ -175,8 +175,8 @@ A compact bullet list of supporting files the agent may consult for deeper conte
 
 - `@.claude/rules/frontend-design-system.md` — tokens, palette, typography
 - `@.claude/rules/frontend-components.md` — component conventions rule (activates on component paths)
-- `@.claude/docs/architecture-frontend.md` — full architecture + routing + SSR boundaries
-- `@.claude/docs/component-inventory.md` — inventory of existing components to reuse
+- `@.claude/docs/reference-architecture-frontend.md` — full architecture + routing + SSR boundaries
+- `@.claude/docs/reference-component-inventory.md` — inventory of existing components to reuse
 - `@.claude/sequences/frontend-data-flow.mmd` — state + API data-flow diagram
 
 ## Size Target
@@ -186,15 +186,15 @@ Template target size: **150-300 lines**. Longer means too descriptive (move deta
 ## What This File Is NOT
 
 - A full style guide (that's `frontend-design-system.md`)
-- A component catalog (that's `component-inventory.md`)
-- An architecture doc (that's `architecture-frontend.md`)
+- A component catalog (that's `reference-component-inventory.md`)
+- An architecture doc (that's `reference-architecture-frontend.md`)
 - A data-flow diagram (that's `frontend-data-flow.mmd`)
 
 It is: **the single document a component-creation agent reads to know how to create a correct component in THIS project.**
 
 ## Enforcement
 
-`/sleep` check for this file when the target project has `component-creation-template.md`:
+`/sleep` check for this file when the target project has `reference-component-creation-template.md`:
 
 - All required sections present (by `## <heading>` match)
 - Canonical skeleton section contains a fenced code block ≥ 15 lines

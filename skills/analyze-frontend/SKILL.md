@@ -14,8 +14,8 @@ argument-hint: "[frontend-path] [--only <area>]"
 > — `template-assembly.mmd` — which subagent output feeds which section of the primary template
 > — `framework-classification.mmd` — pattern-first decision tree inside framework-idiom-extractor (industry / custom / vanilla)
 >
-> Primary-output format: `rules/component-creation-template-format.md` — spec for `component-creation-template.md`
-> Subagent specs: `agents/frontend-detector.md`, `agents/tech-stack-profiler.md`, `agents/design-system-scanner.md`, `agents/component-inventory.md`, `agents/data-flow-mapper.md`, `agents/architecture-analyzer.md`, `agents/framework-idiom-extractor.md`
+> Primary-output format: `rules/component-creation-template-format.md` — spec for `reference-component-creation-template.md`
+> Subagent specs: `agents/frontend-detector.md`, `agents/tech-stack-profiler.md`, `agents/design-system-scanner.md`, `agents/reference-component-inventory.md`, `agents/data-flow-mapper.md`, `agents/architecture-analyzer.md`, `agents/framework-idiom-extractor.md`
 > Fan-out pattern: `docs/reference-subagent-fanout-pattern.md` — decision heuristic, return-shape contract
 > Reference: read `docs/how-to-create-docs.md`
 > Style rules: read `rules/markdown-style.md`, `rules/mermaid-style.md`
@@ -24,7 +24,7 @@ argument-hint: "[frontend-path] [--only <area>]"
 
 **Read-only analyzer.** Detects frontend root(s), runs a two-wave subagent pipeline, and persists structured analysis to `.claude/state/frontend-analysis.json` (gitignored). **Writes NO user-facing documentation.**
 
-To materialize the analysis as human-readable docs (`.claude/docs/component-creation-template.md` + references + `CLAUDE.md` update), run `/create-frontend-docs` AFTER this skill. To refresh a specific area after code drift, run `/update-frontend-docs <area>`.
+To materialize the analysis as human-readable docs (`.claude/docs/reference-component-creation-template.md` + references + `CLAUDE.md` update), run `/create-frontend-docs` AFTER this skill. To refresh a specific area after code drift, run `/update-frontend-docs <area>`.
 
 This split (analyze → create → update) mirrors the toolkit's existing `init-project` / `create-docs` / `update-docs` pattern.
 
@@ -49,8 +49,8 @@ If `.claude/` is missing, the skill stops and directs the user to `/init-project
 ## What this skill does NOT create
 
 - **No** `.claude/rules/frontend-*.md` (that is `/create-frontend-docs`)
-- **No** `.claude/docs/component-creation-template.md` (that is `/create-frontend-docs`)
-- **No** `.claude/docs/architecture-frontend.md` / `component-inventory.md` (that is `/create-frontend-docs`)
+- **No** `.claude/docs/reference-component-creation-template.md` (that is `/create-frontend-docs`)
+- **No** `.claude/docs/reference-architecture-frontend.md` / `reference-component-inventory.md` (that is `/create-frontend-docs`)
 - **No** `.claude/sequences/frontend-data-flow.mmd` (that is `/create-frontend-docs`)
 - **No** edits to root `CLAUDE.md` (that is `/create-frontend-docs`)
 - New modules, tests, CI configuration, custom rules — out of scope
@@ -285,7 +285,7 @@ When run on a project that already has a `.claude/state/frontend-analysis.json`:
 - Full run (no `--only`) → overwrite JSON entirely
 - Partial run (`--only <area>`) → merge JSON: preserve sections outside the filter, replace only filtered sections. Update `generated.ts` to reflect the latest partial run.
 
-When run on a project that has `.claude/docs/component-creation-template.md` or other frontend-* artefacts from a previous `/create-frontend-docs` run:
+When run on a project that has `.claude/docs/reference-component-creation-template.md` or other frontend-* artefacts from a previous `/create-frontend-docs` run:
 
 - This skill does NOT touch those files. It only writes the JSON. The user runs `/create-frontend-docs` separately to update the MDs.
 

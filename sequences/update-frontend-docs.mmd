@@ -74,19 +74,19 @@ sequenceDiagram
         Claude->>FS: Write .claude/rules/frontend-design-system.md<br/>(with paths: scoping)
         FS-->>Claude: OK
     else area == "components"
-        Claude->>FS: Write .claude/rules/frontend-components.md<br/>+ .claude/docs/component-inventory.md
+        Claude->>FS: Write .claude/rules/frontend-components.md<br/>+ .claude/docs/reference-component-inventory.md
         FS-->>Claude: OK
     else area == "data-flow"
         Claude->>FS: Write .claude/sequences/frontend-data-flow.mmd
         FS-->>Claude: OK
     else area == "architecture"
-        Claude->>FS: Write .claude/docs/architecture-frontend.md<br/>+ .claude/docs/component-creation-template.md<br/>(Stack section depends on fresh tech_stack)
+        Claude->>FS: Write .claude/docs/reference-architecture-frontend.md<br/>+ .claude/docs/reference-component-creation-template.md<br/>(Stack section depends on fresh tech_stack)
         FS-->>Claude: OK
     else area == "framework-idioms"
-        Claude->>FS: Write .claude/docs/component-creation-template.md<br/>(framework idioms feed a section of it)
+        Claude->>FS: Write .claude/docs/reference-component-creation-template.md<br/>(framework idioms feed a section of it)
         FS-->>Claude: OK
     else area == "template"
-        Claude->>FS: Write .claude/docs/component-creation-template.md<br/>(re-assembled from current JSON)
+        Claude->>FS: Write .claude/docs/reference-component-creation-template.md<br/>(re-assembled from current JSON)
         FS-->>Claude: OK
     end
 

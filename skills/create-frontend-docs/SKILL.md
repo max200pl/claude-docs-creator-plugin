@@ -1,7 +1,7 @@
 ---
 name: create-frontend-docs
 scope: api
-description: "Materialize the latest frontend analysis (from .claude/state/frontend-analysis.json) as human-readable .claude/ artefacts — component-creation-template.md primary + supporting references + root CLAUDE.md Architecture section update. Requires a prior /analyze-frontend run to produce the JSON."
+description: "Materialize the latest frontend analysis (from .claude/state/frontend-analysis.json) as human-readable .claude/ artefacts — reference-component-creation-template.md primary + supporting references + root CLAUDE.md Architecture section update. Requires a prior /analyze-frontend run to produce the JSON."
 user-invocable: true
 argument-hint: "[--force-rerun] [--only <area>]"
 ---
@@ -17,7 +17,7 @@ argument-hint: "[--force-rerun] [--only <area>]"
 
 Materializes the structured analysis from `/analyze-frontend` into human-readable `.claude/` documentation. **Does no code reading / analysis itself** — purely a JSON → MD transformation + file writer. If the JSON is missing or stale, the skill stops and directs the user to run `/analyze-frontend` first.
 
-Primary output remains `component-creation-template.md` — the context envelope for a downstream component-creation agent. Supporting references (design-system rule, components rule, architecture doc, inventory, data-flow mermaid) are cross-linked from the template.
+Primary output remains `reference-component-creation-template.md` — the context envelope for a downstream component-creation agent. Supporting references (design-system rule, components rule, architecture doc, inventory, data-flow mermaid) are cross-linked from the template.
 
 ## What this skill creates
 
@@ -25,14 +25,14 @@ All artefacts land in the target project's `.claude/` and the root `CLAUDE.md`. 
 
 **Primary:**
 
-- `.claude/docs/component-creation-template.md` — prescriptive recipe per [rules/component-creation-template-format.md](../../rules/component-creation-template-format.md)
+- `.claude/docs/reference-component-creation-template.md` — prescriptive recipe per [rules/component-creation-template-format.md](../../rules/component-creation-template-format.md)
 
 **Supporting references (cross-linked from template):**
 
 - `.claude/rules/frontend-design-system.md` — design tokens rule with `paths:` scoping
 - `.claude/rules/frontend-components.md` — component conventions rule with `paths:` scoping
-- `.claude/docs/architecture-frontend.md` — Stack + Architecture sections (merged from `tech_stack` + `architecture` + `framework_idioms` in JSON)
-- `.claude/docs/component-inventory.md` — notable-components reference table
+- `.claude/docs/reference-architecture-frontend.md` — Stack + Architecture sections (merged from `tech_stack` + `architecture` + `framework_idioms` in JSON)
+- `.claude/docs/reference-component-inventory.md` — notable-components reference table
 - `.claude/sequences/frontend-data-flow.mmd` — state + API flow Mermaid diagram
 
 **Surgical CLAUDE.md update:**
@@ -48,7 +48,7 @@ All artefacts land in the target project's `.claude/` and the root `CLAUDE.md`. 
 ```text
 /create-frontend-docs                  # materialize latest analysis as docs
 /create-frontend-docs --force-rerun    # force analyze-frontend first, then create (chain)
-/create-frontend-docs --only components # regenerate only frontend-components.md + component-inventory.md
+/create-frontend-docs --only components # regenerate only frontend-components.md + reference-component-inventory.md
 ```
 
 `--only` accepts the same areas as `/analyze-frontend`: `design-system`, `components`, `data-flow`, `architecture`, `framework-idioms`, `all`. It filters WRITES — it doesn't re-run analysis. (For re-analyzing + rewriting a single area, use `/update-frontend-docs <area>`.)
@@ -58,7 +58,7 @@ All artefacts land in the target project's `.claude/` and the root `CLAUDE.md`. 
 | After phase | What to show | What to ask |
 | ---- | ---- | ---- |
 | Preflight | JSON age + frontend count | If JSON is `>30 days old` — warn and offer to re-run `/analyze-frontend` first |
-| Assemble | Draft component-creation-template.md line count + per-frontend summary | Write all artefacts? Any to skip? |
+| Assemble | Draft reference-component-creation-template.md line count + per-frontend summary | Write all artefacts? Any to skip? |
 | Report | Dashboard + list of written files + path to report | — |
 
 ## Composition
@@ -66,7 +66,7 @@ All artefacts land in the target project's `.claude/` and the root `CLAUDE.md`. 
 | Phase | Owner | Responsibility |
 | ---- | ---- | ---- |
 | Preflight | **this skill** | Confirm `.claude/` exists; read `.claude/state/frontend-analysis.json`; validate schema_version; check freshness; capture `START_TS` |
-| Assemble primary template | **this skill** | Build `component-creation-template.md` per `rules/component-creation-template-format.md`, populating from JSON fields |
+| Assemble primary template | **this skill** | Build `reference-component-creation-template.md` per `rules/component-creation-template-format.md`, populating from JSON fields |
 | Confirm with user | **this skill** | Show draft line count + per-frontend summary; accept / skip per artefact |
 | Write artefacts | **this skill** | Write primary + 5 references; apply `paths:` frontmatter to the 2 rule files |
 | Update root CLAUDE.md | **this skill** | Surgical edit: add/replace `### Frontend` subsection under `## Architecture`; no other sections touched |
@@ -95,7 +95,7 @@ Read `.claude/state/frontend-analysis.json`. Error cases:
 
 ### Phase: Assemble primary template
 
-Build `.claude/docs/component-creation-template.md` from JSON per the section-feeding map in [rules/component-creation-template-format.md](../../rules/component-creation-template-format.md). Concrete mapping:
+Build `.claude/docs/reference-component-creation-template.md` from JSON per the section-feeding map in [rules/component-creation-template-format.md](../../rules/component-creation-template-format.md). Concrete mapping:
 
 | Template section | JSON source |
 | ---- | ---- |
@@ -120,15 +120,48 @@ If a JSON section is `null` or SKIP (subagent returned SKIP during analysis), th
 
 File-naming:
 
-- `frontend_roots.length == 1` → plain filenames (`component-creation-template.md`, `frontend-design-system.md`, etc.)
+- `frontend_roots.length == 1` → plain filenames (`reference-component-creation-template.md`, `frontend-design-system.md`, etc.)
 - `frontend_roots.length > 1` → suffix `-<root-slug>` derived from `frontend_roots[i].relative` basename
 
-**Paths-scoping for generated rules:**
+**Paths-scoping for generated rules — exact frontmatter blocks to prepend:**
 
-- `frontend-design-system.md` → `paths: ["<frontend_root>/**/*.{css,scss,sass}", "<frontend_root>/*tailwind*.{js,ts,cjs}", "<frontend_root>/**/*token*", "<frontend_root>/**/theme*.*"]`
-- `frontend-components.md` → `paths: ["<frontend_root>/src/components/**", "<frontend_root>/components/**", "<frontend_root>/src/ui/**"]`
+`frontend-design-system.md`:
 
-The orchestrator prepends the frontmatter block based on the frontend_root detected in JSON.
+```yaml
+---
+description: Design system tokens and styling conventions for <framework> frontend at <relative_root>. Applies when editing CSS/SCSS/styling files in the frontend root.
+paths:
+  - "<frontend_root>/**/*.{css,scss,sass}"
+  - "<frontend_root>/*tailwind*.{js,ts,cjs}"
+  - "<frontend_root>/**/*token*"
+  - "<frontend_root>/**/theme*.*"
+---
+```
+
+`frontend-components.md`:
+
+```yaml
+---
+description: Component conventions for <framework> frontend at <relative_root> — file structure, prop patterns, naming, and styling integration. Applies when editing JS/TS component files.
+paths:
+  - "<frontend_root>/src/components/**"
+  - "<frontend_root>/components/**"
+  - "<frontend_root>/src/ui/**"
+---
+```
+
+Replace `<frontend_root>` with the relative path from the project root (e.g., `projects/desktop/ui`).
+Replace `<framework>` and `<relative_root>` with values from `frontend_analysis.json`.
+Write the block as the literal first lines of the file, before any `# Heading`.
+
+**Mermaid pre-write validation:**
+
+Before writing `frontend-data-flow.mmd`, scan the diagram text for known invalid patterns:
+
+- `participant .+ as .+<br/>` — `<br/>` in an `as` alias is not supported; replace with a short plain alias (move extra info into a `note over` block if needed)
+- `Note over .+:.*[;]` or arrow message text containing `;` — strip semicolons or replace with a comma / em-dash
+
+Fix in memory before the Write call — do NOT write a broken diagram and fix in a follow-up Write.
 
 ### Phase: Update root CLAUDE.md Architecture section
 
@@ -143,11 +176,11 @@ Content of `### Frontend` subsection:
 ### Frontend
 
 - Stack: <framework-name version> with <styling-model>
-- See [.claude/docs/component-creation-template.md](.claude/docs/component-creation-template.md) — prescriptive recipe for creating new components (primary read for component-creation agents)
+- See [.claude/docs/reference-component-creation-template.md](.claude/docs/reference-component-creation-template.md) — prescriptive recipe for creating new components (primary read for component-creation agents)
 - Design system tokens: `@.claude/rules/frontend-design-system.md`
 - Component conventions: `@.claude/rules/frontend-components.md`
-- Architecture overview: [.claude/docs/architecture-frontend.md](.claude/docs/architecture-frontend.md)
-- Component inventory: [.claude/docs/component-inventory.md](.claude/docs/component-inventory.md)
+- Architecture overview: [.claude/docs/reference-architecture-frontend.md](.claude/docs/reference-architecture-frontend.md)
+- Component inventory: [.claude/docs/reference-component-inventory.md](.claude/docs/reference-component-inventory.md)
 - Data-flow diagram: [.claude/sequences/frontend-data-flow.mmd](.claude/sequences/frontend-data-flow.mmd)
 ```
 

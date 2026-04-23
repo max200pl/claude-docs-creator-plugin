@@ -96,6 +96,7 @@ Pass the mode into the preflight's confirmation box so the user sees it.
 Reference prose (tutorials, how-tos, checklists, research, mappings). Not auto-loaded — consumed by skills via `Read`, linked from other docs, or surfaced by `/menu`. See `rules/docs-folder-structure.md` for the authoring rules.
 
 - [ ] **Filename prefix** — every file starts with one of: `tutorial-`, `how-to-`, `checklist-`, `research-`, `reference-`, `mapping-`, OR is a grandfathered meta-doc (`milestones.md`, `testing-checklist.md`, `two-claude-workflow.md`). Other names → `[WARN]` "rename to match prefix or move out of docs/".
+- [ ] **Stale toolkit-generated names** — if `docs/` contains `component-creation-template.md`, `architecture-frontend.md`, or `component-inventory.md` (old names from `/create-frontend-docs` prior to v0.13.1) → `[WARN]` "outdated toolkit filename — re-run `/create-frontend-docs` to regenerate with `reference-` prefix".
 - [ ] **Size tier per type** — apply from the table below. Soft = `[OK]`, Warn = `[WARN]`, Hard = `[ERR]`.
 
   | Prefix | Soft ≤ | Warn ≤ | Hard > |

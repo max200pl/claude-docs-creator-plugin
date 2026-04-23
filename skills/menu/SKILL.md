@@ -129,7 +129,7 @@ Display in a box:
 3. Skills — glob `.claude/skills/*/SKILL.md` in the PROJECT (plugin skills don't count)
 4. Sequences — glob `.claude/sequences/**/*.mmd`, count
 5. Settings — check `.claude/settings.json` exists and is valid JSON
-6. Frontend artefacts — glob `.claude/state/frontend-analysis.json` + `.claude/docs/component-creation-template.md`
+6. Frontend artefacts — glob `.claude/state/frontend-analysis.json` + `.claude/docs/reference-component-creation-template.md`
 7. Git — `git log -1 --format="%cr"` for last commit time
 
 ## What This Skill Does NOT Do

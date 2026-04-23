@@ -40,12 +40,12 @@ flowchart TB
 
     FIE -->|"{summary_row,<br/>Framework Idioms}"| ASSY
     DSS -->|"{summary_row,<br/>frontend-design-system.md}"| ASSY
-    CI -->|"{summary_row,<br/>frontend-components.md +<br/>component-inventory.md}"| ASSY
+    CI -->|"{summary_row,<br/>frontend-components.md +<br/>reference-component-inventory.md}"| ASSY
     DFM -->|"{summary_row,<br/>frontend-data-flow.mmd}"| ASSY
     AA -->|"{summary_row,<br/>Architecture section}"| ASSY
 
     ASSY -->|"primary output"| TEMPL[".claude/docs/<br/>component-creation-<br/>template.md<br/><br/>(for downstream<br/>component-creation<br/>agent)"]
-    ASSY -->|"supporting references"| REFS["4 reference files:<br/>frontend-design-system.md<br/>frontend-components.md<br/>architecture-frontend.md<br/>component-inventory.md<br/>frontend-data-flow.mmd"]
+    ASSY -->|"supporting references"| REFS["4 reference files:<br/>frontend-design-system.md<br/>frontend-components.md<br/>reference-architecture-frontend.md<br/>reference-component-inventory.md<br/>frontend-data-flow.mmd"]
 
     %% Why the two waves matter — annotations via notes
     WHY["Why two waves, not one:<br/>• Wave 2 specialists would otherwise<br/>  duplicate stack detection<br/>• Sharing stack_profile narrows globs<br/>  (.vue vs .tsx based on framework)<br/>• Skips dead branches (no styled-components<br/>  lookup when stack says Tailwind)<br/>• Correct framework-idiom branch selected<br/>• Shared knowledge of state lib, routing,<br/>  data-fetching shape"]

@@ -36,23 +36,23 @@ sequenceDiagram
     end
 
     note over Claude,User: Phase: Assemble primary template
-    Claude->>Claude: Build component-creation-template.md<br/>from JSON per rules/component-creation-<br/>template-format.md.<br/>Section map:<br/>- Styling/Class naming ← tech_stack<br/>- State/Data ← data_flow<br/>- Skeleton ← component_inventory<br/>- Framework idioms ← framework_idioms<br/>- Design tokens ← design_system<br/>- Architecture ← architecture
+    Claude->>Claude: Build reference-component-creation-template.md<br/>from JSON per rules/component-creation-<br/>template-format.md.<br/>Section map:<br/>- Styling/Class naming ← tech_stack<br/>- State/Data ← data_flow<br/>- Skeleton ← component_inventory<br/>- Framework idioms ← framework_idioms<br/>- Design tokens ← design_system<br/>- Architecture ← architecture
     Claude->>User: Draft template preview<br/>(line count + per-frontend summary)<br/>Write all artefacts?
     User-->>Claude: Approve / skip list
 
     note over Claude,FS: Phase: Write artefacts
-    Claude->>FS: Write .claude/docs/component-creation-template.md<br/>(PRIMARY — for component-creation agent)
+    Claude->>FS: Write .claude/docs/reference-component-creation-template.md<br/>(PRIMARY — for component-creation agent)
     FS-->>Claude: OK
     opt design_system section non-null
         Claude->>FS: Write .claude/rules/frontend-design-system.md<br/>(with paths: scoped to theme/token files)
         FS-->>Claude: OK
     end
     opt component_inventory section non-null
-        Claude->>FS: Write .claude/rules/frontend-components.md<br/>(paths: scoped to components/) +<br/>.claude/docs/component-inventory.md
+        Claude->>FS: Write .claude/rules/frontend-components.md<br/>(paths: scoped to components/) +<br/>.claude/docs/reference-component-inventory.md
         FS-->>Claude: OK
     end
     opt architecture + tech_stack non-null
-        Claude->>FS: Write .claude/docs/architecture-frontend.md
+        Claude->>FS: Write .claude/docs/reference-architecture-frontend.md
         FS-->>Claude: OK
     end
     opt data_flow.primary_flow_mermaid non-null

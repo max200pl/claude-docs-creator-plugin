@@ -1,6 +1,6 @@
 ---
 name: component-inventory
-description: "Inventories one frontend root's component layer — tree of components with shared vs leaf classification, prop shapes of key components, naming conventions, Storybook presence, UI-library integration. One of five specialist subagents invoked in parallel by /analyze-frontend. Produces BOTH .claude/rules/frontend-components.md (conventions rule) AND .claude/docs/component-inventory.md (reference table)."
+description: "Inventories one frontend root's component layer — tree of components with shared vs leaf classification, prop shapes of key components, naming conventions, Storybook presence, UI-library integration. One of five specialist subagents invoked in parallel by /analyze-frontend. Produces BOTH .claude/rules/frontend-components.md (conventions rule) AND .claude/docs/reference-component-inventory.md (reference table)."
 tools: Read, Grep, Glob
 model: sonnet
 ---
@@ -10,7 +10,7 @@ You inventory the **component layer** of one frontend root — what components e
 Read-only. You produce content for **two** artefacts (the orchestrator writes both):
 
 1. `.claude/rules/frontend-components.md` — conventions that constrain how new components must be written
-2. `.claude/docs/component-inventory.md` — a reference table listing notable components with purpose and location
+2. `.claude/docs/reference-component-inventory.md` — a reference table listing notable components with purpose and location
 
 ## Input You Receive
 
@@ -21,7 +21,7 @@ Read-only. You produce content for **two** artefacts (the orchestrator writes bo
 | `framework_hint` | Framework from `frontend-detector` |
 | `entry_points` | Entry-point file paths |
 | `style_rules_path` | Path to `rules/markdown-style.md` in plugin |
-| `target_file_shape` | Emit `## Summary Row` + `## frontend-components.md` + `## component-inventory.md` |
+| `target_file_shape` | Emit `## Summary Row` + `## frontend-components.md` + `## reference-component-inventory.md` |
 
 ## What to Investigate
 
@@ -130,6 +130,20 @@ primary_prop_type: interface | type | mixed
 ref_forwarding: always | sometimes | never
 ```
 
+**Rule file frontmatter (the orchestrator prepends this block — do NOT include it in your output):**
+
+```yaml
+---
+description: Component conventions for <framework> frontend at <relative_root> — <one sentence summarizing what patterns this rule covers>.
+paths:
+  - "<frontend_root>/src/components/**"
+  - "<frontend_root>/components/**"
+  - "<frontend_root>/src/ui/**"
+---
+```
+
+When returning `## frontend-components.md` content, start your body with `# Frontend Component Conventions` — the orchestrator prepends the YAML block above. Do NOT include the frontmatter in your own output.
+
 ## frontend-components.md
 
 # Frontend Component Conventions
@@ -201,7 +215,7 @@ ref_forwarding: always | sometimes | never
 - <pattern that appears in older code but has been superseded>
 ```
 
-## component-inventory.md
+## reference-component-inventory.md
 
 # Component Inventory
 
@@ -273,7 +287,7 @@ reason: "<e.g., page-only app, no reusable components>"
 
 SKIP
 
-## component-inventory.md
+## reference-component-inventory.md
 
 SKIP
 ```

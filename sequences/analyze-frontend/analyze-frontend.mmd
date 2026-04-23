@@ -60,9 +60,9 @@ sequenceDiagram
     end
 
     note over Claude,FS: Phase: Assemble primary template + supporting references
-    Note right of Claude: Orchestrator assembles the primary<br/>component-creation-template.md from<br/>Wave 1 + Wave 2 outputs. This is THE<br/>downstream agent's context envelope.
+    Note right of Claude: Orchestrator assembles the primary<br/>reference-component-creation-template.md from<br/>Wave 1 + Wave 2 outputs. This is THE<br/>downstream agent's context envelope.
 
-    Claude->>Claude: Assemble component-creation-template.md from:<br/>- Wave 1 stack_profile (Stack, Styling, Class naming)<br/>- framework-idiom-extractor (Framework idioms section)<br/>- design-system-scanner (Design-token usage examples)<br/>- component-inventory (Canonical skeleton, File layout)<br/>- data-flow-mapper (State and data wiring)<br/>- architecture-analyzer (File layout, imports)<br/>— per rules/component-creation-template-format.md
+    Claude->>Claude: Assemble reference-component-creation-template.md from:<br/>- Wave 1 stack_profile (Stack, Styling, Class naming)<br/>- framework-idiom-extractor (Framework idioms section)<br/>- design-system-scanner (Design-token usage examples)<br/>- component-inventory (Canonical skeleton, File layout)<br/>- data-flow-mapper (State and data wiring)<br/>- architecture-analyzer (File layout, imports)<br/>— per rules/component-creation-template-format.md
 
     Claude->>FS: Write .claude/docs/component-creation-template[-<root>].md<br/>(PRIMARY — for component-creation agents)
     FS-->>Claude: OK

@@ -1,11 +1,11 @@
 ---
 name: tech-stack-profiler
-description: "Profiles one frontend root's technology stack — framework confirmation, bundler, language, styling approach, state management, routing, testing, rendering mode (SSR/SPA/SSG). One of five specialist subagents invoked in parallel by /analyze-frontend. Output feeds the Stack section of .claude/docs/architecture-frontend.md."
+description: "Profiles one frontend root's technology stack — framework confirmation, bundler, language, styling approach, state management, routing, testing, rendering mode (SSR/SPA/SSG). One of five specialist subagents invoked in parallel by /analyze-frontend. Output feeds the Stack section of .claude/docs/reference-architecture-frontend.md."
 tools: Read, Grep, Glob
 model: sonnet
 ---
 
-You profile the **technology stack** of one frontend root — the "what" of the codebase. A sibling subagent (`architecture-analyzer`) handles the "how" (folder boundaries, layout composition). Together you both contribute to `architecture-frontend.md`.
+You profile the **technology stack** of one frontend root — the "what" of the codebase. A sibling subagent (`architecture-analyzer`) handles the "how" (folder boundaries, layout composition). Together you both contribute to `reference-architecture-frontend.md`.
 
 Read-only. Return structured output; the orchestrator aggregates and writes.
 
@@ -18,7 +18,7 @@ Read-only. Return structured output; the orchestrator aggregates and writes.
 | `framework_hint` | Framework name from `frontend-detector` (e.g., `next.js`, `sveltekit`) |
 | `entry_points` | List of entry-point file paths from `frontend-detector` |
 | `style_rules_path` | Path to `rules/markdown-style.md` in the loaded plugin |
-| `target_file_shape` | Reminder: emit `## Summary Row` + `## architecture-frontend.md (Stack section)` |
+| `target_file_shape` | Reminder: emit `## Summary Row` + `## reference-architecture-frontend.md (Stack section)` |
 
 ## What to Investigate
 
@@ -87,7 +87,7 @@ testing: [<libs>]
 linting: [<tools>]
 ```
 
-**Critical for component-creation-template.md — the downstream agent reads `styling_model` and `class_naming` to know whether new components create CSS files at all, whether custom class names are allowed, and how to reference design tokens.**
+**Critical for reference-component-creation-template.md — the downstream agent reads `styling_model` and `class_naming` to know whether new components create CSS files at all, whether custom class names are allowed, and how to reference design tokens.**
 
 ### Styling-model detection matrix
 
@@ -120,9 +120,9 @@ linting: [<tools>]
 | Framework auto-scopes (Vue scoped, Svelte component-scoped, Angular ViewEncapsulation) | `auto-scoped` |
 | No consistent convention / classes not used | `none` |
 
-These two fields drive the "Styling model" and "Class naming" sections of `component-creation-template.md`. The answer to **"are classes even used?"** must be definitive — do not leave ambiguous.
+These two fields drive the "Styling model" and "Class naming" sections of `reference-component-creation-template.md`. The answer to **"are classes even used?"** must be definitive — do not leave ambiguous.
 
-## architecture-frontend.md (Stack section)
+## reference-architecture-frontend.md (Stack section)
 
 ### Stack
 
@@ -162,7 +162,7 @@ trivial: true
 reason: "no package.json or framework config — frontend-detector over-matched"
 ```
 
-## architecture-frontend.md (Stack section)
+## reference-architecture-frontend.md (Stack section)
 
 SKIP
 ```
@@ -181,4 +181,4 @@ Surface surprises:
 
 - You are NOT an auditor. Surface facts, not judgements.
 - You are NOT an upgrade recommender. Version notes in `## Notes` is OK; writing migration guides is not.
-- You are NOT `architecture-analyzer`. You describe WHAT is there; they describe HOW it's organized. Your output becomes the Stack section; theirs becomes the Architecture section. Both files merge into `architecture-frontend.md`.
+- You are NOT `architecture-analyzer`. You describe WHAT is there; they describe HOW it's organized. Your output becomes the Stack section; theirs becomes the Architecture section. Both files merge into `reference-architecture-frontend.md`.

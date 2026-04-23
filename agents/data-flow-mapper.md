@@ -193,7 +193,7 @@ sequenceDiagram
     UI->>UI: re-render with fresh data
 ```
 
-Write Mermaid that is valid per `rules/mermaid-style.md` — neutral theme declared, no hardcoded colors, short participant names, `<br/>` for multi-line inside notes.
+Write Mermaid that is valid per `rules/mermaid-style.md` — neutral theme declared, no hardcoded colors, short single-line participant aliases (no `<br/>` in `as` labels, no semicolons in note text), `<br/>` only inside `note over` blocks.
 
 ## Trivial-Case Short-Circuit
 

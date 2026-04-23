@@ -29,6 +29,8 @@ paths:
 - Arrows: `->>` solid request, `-->>` dashed response, `-x` lost message
 - Use `activate` / `deactivate` for call lifelines
 - One logical step per `note` block — keep notes short (under 40 chars per line, use `<br/>` for wrapping)
+- `<br/>` is NOT supported in `participant X as Label` aliases — aliases must be a single plain-text line; no HTML tags in `as` labels
+- Avoid semicolons (`;`) in `note over` text and arrow message text — Mermaid treats `;` as a statement separator in some renderers
 
 ## Flowcharts
 
@@ -50,7 +52,7 @@ paths:
 ## General
 
 - Max diagram width: keep under 10 participants / 8 columns to avoid horizontal scroll
-- Use `<br/>` for multiline text inside nodes and notes
+- Use `<br/>` for multiline text inside nodes and note blocks (NOT in `participant X as Label` aliases)
 - Escape special characters in labels: wrap in quotes if needed (`"label with (parens)"`)
 
 ## File Rules

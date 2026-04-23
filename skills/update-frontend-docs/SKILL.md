@@ -25,11 +25,11 @@ If the project needs a FULL refresh, run `/analyze-frontend` (to regenerate the 
 | `<area>` | Re-invokes | Updates in JSON | Regenerates artefact |
 | ---- | ---- | ---- | ---- |
 | `design-system` | `design-system-scanner` | `frontend_roots[*].design_system` | `.claude/rules/frontend-design-system.md` |
-| `components` | `component-inventory` | `frontend_roots[*].component_inventory` | `.claude/rules/frontend-components.md` + `.claude/docs/component-inventory.md` |
+| `components` | `component-inventory` | `frontend_roots[*].component_inventory` | `.claude/rules/frontend-components.md` + `.claude/docs/reference-component-inventory.md` |
 | `data-flow` | `data-flow-mapper` | `frontend_roots[*].data_flow` | `.claude/sequences/frontend-data-flow.mmd` |
-| `architecture` | `tech-stack-profiler` (Wave 1 refresh) + `architecture-analyzer` | `frontend_roots[*].tech_stack` + `.architecture` | `.claude/docs/architecture-frontend.md` |
-| `framework-idioms` | `framework-idiom-extractor` | `frontend_roots[*].framework_idioms` | Section in `component-creation-template.md` (triggers full template rewrite since idioms feed it) |
-| `template` | (none — re-assembles only) | no JSON change | `.claude/docs/component-creation-template.md` only |
+| `architecture` | `tech-stack-profiler` (Wave 1 refresh) + `architecture-analyzer` | `frontend_roots[*].tech_stack` + `.architecture` | `.claude/docs/reference-architecture-frontend.md` |
+| `framework-idioms` | `framework-idiom-extractor` | `frontend_roots[*].framework_idioms` | Section in `reference-component-creation-template.md` (triggers full template rewrite since idioms feed it) |
+| `template` | (none — re-assembles only) | no JSON change | `.claude/docs/reference-component-creation-template.md` only |
 
 `template` is useful when the rule `component-creation-template-format.md` changes and you want to re-emit the template from existing JSON without re-running any subagent.
 
@@ -113,11 +113,11 @@ Write JSON back atomically (temp-write + rename).
 Based on `<area>`:
 
 - `design-system` → regenerate only `.claude/rules/frontend-design-system.md` from `design_system` + new frontmatter `paths:` scoping
-- `components` → regenerate `.claude/rules/frontend-components.md` + `.claude/docs/component-inventory.md` from `component_inventory`
+- `components` → regenerate `.claude/rules/frontend-components.md` + `.claude/docs/reference-component-inventory.md` from `component_inventory`
 - `data-flow` → regenerate `.claude/sequences/frontend-data-flow.mmd` from `data_flow.primary_flow_mermaid`
-- `architecture` → regenerate `.claude/docs/architecture-frontend.md` from `tech_stack` + `architecture`; ALSO regenerate `component-creation-template.md` (because styling_model / class_naming in Stack section changed)
-- `framework-idioms` → regenerate `component-creation-template.md` (framework idioms are one of its sections)
-- `template` → regenerate `component-creation-template.md` from current JSON (no subagent ran)
+- `architecture` → regenerate `.claude/docs/reference-architecture-frontend.md` from `tech_stack` + `architecture`; ALSO regenerate `reference-component-creation-template.md` (because styling_model / class_naming in Stack section changed)
+- `framework-idioms` → regenerate `reference-component-creation-template.md` (framework idioms are one of its sections)
+- `template` → regenerate `reference-component-creation-template.md` from current JSON (no subagent ran)
 
 Use the same file-naming rules as `/create-frontend-docs` (suffix per frontend when N > 1).
 

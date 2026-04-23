@@ -111,7 +111,8 @@ Expand the sketch into a full `.mmd` file. Apply `rules/mermaid-style.md`:
 - No hardcoded colors, no `rect rgb(...)`, no inline styles
 - No step-number prefixes in note labels (per `rules/no-step-numbers.md`)
 - `alt/else/end` for branching; `opt/end` for optional side-effects; `par/end` for concurrency; `break/end` for early exit
-- `<br/>` for multi-line note content (the only supported newline in Mermaid labels)
+- `<br/>` for multi-line note content inside `note over` blocks (NOT in `participant X as Label` aliases — plain text only in aliases)
+- Avoid semicolons (`;`) in `note over` text and arrow message text — Mermaid treats `;` as a statement separator in some renderers
 - Max 2 levels of subgraph nesting
 
 Typical template:
