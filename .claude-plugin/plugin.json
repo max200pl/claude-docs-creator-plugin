@@ -1,7 +1,7 @@
 {
   "name": "claude-docs-creator",
-  "description": "Toolkit for authoring, validating, and maintaining .claude/ documentation in any project. Bundles api-scope skills (/init-project, /create-docs, /update-docs, /validate-claude-docs, /status, /analyze-frontend, /create-frontend-docs, /update-frontend-docs, /create-sequences, /check-links, /menu), one shared skill (/create-steps), a fleet of specialist subagents (doc-reviewer, module-documenter, frontend-detector, tech-stack-profiler, design-system-scanner, component-inventory, data-flow-mapper, architecture-analyzer, framework-idiom-extractor, feature-flow-detector), governance rules (docs-folder-structure, toolkit-workflow, report-format, component-creation-template-format), and a PostToolUse hook that auto-flags broken cross-refs in edited .md/.mmd files. The frontend suite splits into analyze (read-only; produces structured .claude/state/frontend-analysis.json with schema 1.1), create-frontend-docs (JSON → human-readable reference-component-creation-template.md + supporting references + per-pattern feature-flow diagrams in sequences/features/), and update-frontend-docs (area-scoped refresh including feature-flows area). Toolkit-internal skills (create-mermaid, research, create-tutorial, sleep, distill) stay in the private dev repo and are not distributed.",
-  "version": "0.14.0",
+  "description": "Generate and maintain .claude/ documentation for any project.",
+  "version": "0.14.1",
   "author": {
     "name": "Maksym Poskannyi"
   },
