@@ -144,16 +144,17 @@ After detection completes, read existing state and present everything in one box
    - `.claude/rules/frontend-design-system*.md` + `frontend-components*.md`
    - `.claude/docs/reference-architecture-frontend*.md` + `reference-component-inventory*.md`
    - `.claude/sequences/frontend-data-flow*.mmd` + `features/*.mmd`
-3. Show one combined box:
+3. Show one combined box followed by a numbered select menu:
 
 ```text
   ┌─ analyze-frontend ────────────────────────────────────────┐
   │                                                           │
-  │  Detected:                                                │
-  │    desktop/ui/src  (Sciter JS)                            │
+  │  Detected frontends:                                      │
+  │    1. apps/web        (Next.js)   ← main                  │
+  │    2. apps/marketing  (Astro)                             │
   │                                                           │
-  │  Existing analysis: 5 days ago · plugin v0.13.0           │
-  │    last filter: all · 1 frontend                          │
+  │  Existing analysis: 5 days ago · plugin v0.14.0           │
+  │    last filter: all · 2 frontends                         │
   │                                                           │
   │  Artefacts on disk:                                       │
   │    reference-component-creation-template.md   5d ✓        │
@@ -165,15 +166,25 @@ After detection completes, read existing state and present everything in one box
   │    sequences/features/ (2 files, oldest 5d)   5d ✓        │
   │                                                           │
   └───────────────────────────────────────────────────────────┘
-  Run full analysis / --only data-flow / skip (most things fresh)?
+
+  What to do?
+    [1] Full analysis — all frontends, all areas        (default)
+    [2] Full analysis — only apps/web (main)
+    [3] Refresh stale area — --only data-flow            (⚠ 1 stale)
+    [4] Choose custom --only <area> or subset of roots
+    [5] Skip — data is mostly fresh, go to /create-frontend-docs
+
+  Reply with a number or type a custom filter (e.g. "1,3" / "--only components"):
 ```
 
-4. Accept choice:
-   - **full** — proceed with Wave 1 + full 7-specialist Wave 2
-   - **`--only <area>`** — run only matching specialists; merge JSON
-   - **skip** — exit with "Run `/create-frontend-docs` or `/update-frontend-docs <area>`"
+When no prior state exists: omit the artefacts block and options [3]/[5], show only [1] (full) and [4] (custom).
 
-If no prior state: show detected frontends only, no age columns, default to full run.
+When no stale artefacts: omit option [3].
+
+4. Parse reply:
+   - number → map to action above
+   - `--only <area>` text → run matching specialists, merge JSON
+   - free-form root selection (`"1,2"`) → limit detection scope and run full wave on those roots
 
 Age thresholds: fresh < 7 days `✓`, aging 7–30 days `⚠`, stale > 30 days `✗`.
 

@@ -42,8 +42,8 @@ sequenceDiagram
     Claude->>FS: Glob existing artefacts + get ages:<br/>.claude/docs/reference-component-creation-template*.md<br/>.claude/rules/frontend-design-system*.md<br/>.claude/rules/frontend-components*.md<br/>.claude/docs/reference-architecture-frontend*.md<br/>.claude/docs/reference-component-inventory*.md<br/>.claude/sequences/frontend-data-flow*.mmd<br/>.claude/sequences/features/*.mmd
     FS-->>Claude: file list + ages
 
-    Claude->>User: Detected N frontend(s):<br/>  - path (framework)<br/>Existing analysis: <date> · plugin <ver> · filter: <all/area><br/>Artefacts on disk: <name> <age ✓/⚠/✗> ...<br/>Run full analysis / --only <area> / skip (data is fresh)?
-    User-->>Claude: full / --only <area> / skip
+    Claude->>User: Detected frontends: N roots (framework)<br/>Existing analysis: <date> · plugin <ver><br/>Artefacts: <name> <age ✓/⚠/✗> ...<br/>Numbered menu:<br/>[1] Full — all frontends, all areas<br/>[2] Full — only <main root><br/>[3] Refresh stale — --only <area>  (if stale exists)<br/>[4] Custom --only / subset of roots<br/>[5] Skip — go to /create-frontend-docs
+    User-->>Claude: number / custom filter
     alt skip
         Claude->>User: Analysis is current.<br/>Run /create-frontend-docs or /update-frontend-docs <area>.
         break Skill aborts — nothing to do

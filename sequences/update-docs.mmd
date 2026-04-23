@@ -39,13 +39,18 @@ sequenceDiagram
     note over Claude: Phase: Build update plan (unique)
     Claude->>Claude: classify drift items<br/>safe-auto / needs-review / destructive
 
+    alt mode not specified
+        Claude->>User: Drift found — how to proceed?<br/>[1] Interactive — review each change   (default)<br/>[2] Auto — apply safe changes, confirm risky<br/>[3] Report only — no writes, just show plan
+        User->>Claude: choice
+    end
+
     alt mode = report
         Claude->>User: show plan, no writes
     else mode = auto
         Claude->>Claude: apply safe, prompt on review + destructive
     else interactive (default)
-        Claude->>User: show plan box, per-item prompt
-        User->>Claude: choices
+        Claude->>User: Plan box with drift items grouped by risk:<br/>  Safe (auto):  N items<br/>  Review needed: N items<br/>  Destructive:  N items<br/>[1] Apply all safe + review each risky<br/>[2] Apply safe only, skip risky<br/>[3] Select individual items
+        User->>Claude: choice
     end
 
     note over Claude,FS: Phase: Apply drift updates (unique)

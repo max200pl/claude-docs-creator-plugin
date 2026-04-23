@@ -8,7 +8,7 @@ sequenceDiagram
     participant FS as File System
     participant Glob as Glob Tool
 
-    note over Claude: Capture start timestamp<br/>(used by Report phase for wall_clock_sec)
+    note over Claude: Capture start timestamp
     Claude->>Claude: START_TS = date +%s<br/>RUN_TS = date -u +%Y%m%dT%H%M%SZ<br/>DISPLAY_TS = date +%Y%m%d-%H%M%S
 
     note over Claude,FS: Scaffold .claude structure
@@ -16,7 +16,7 @@ sequenceDiagram
     FS-->>Claude: Exists / not found
 
     alt .claude/ already exists
-        Claude->>User: .claude/ exists —<br/>overwrite / merge / abort?
+        Claude->>User: .claude/ already exists.<br/>[1] Merge — keep existing, fill gaps (recommended)<br/>[2] Overwrite — start fresh, delete existing content<br/>[3] Abort
         User-->>Claude: Choice
         break User chose abort
             Claude->>User: Aborted
@@ -25,39 +25,35 @@ sequenceDiagram
 
     Claude->>FS: Create .claude/ structure<br/>(rules/, docs/, skills/, sequences/,<br/>agents/, output-styles/)<br/>+ .gitkeep in empty dirs
     FS-->>Claude: Directories created
-    Claude->>FS: Create CLAUDE.md,<br/>CLAUDE.local.md,<br/>settings.json, settings.local.json
+    Claude->>FS: Create CLAUDE.md, CLAUDE.local.md,<br/>settings.json, settings.local.json
     FS-->>Claude: OK
-    Claude->>FS: Append .gitignore entries<br/>(CLAUDE.local.md,<br/>settings.local.json,<br/>agent-memory-local/)
+    Claude->>FS: Append .gitignore entries
     FS-->>Claude: OK
 
     note over Claude,Glob: Detect stack
-    Claude->>Glob: Pass 1: build markers<br/>(*.sln, go.mod, Cargo.toml,<br/>package.json)
+    Claude->>Glob: Pass 1: build markers<br/>(*.sln, go.mod, Cargo.toml, package.json)
     Glob-->>Claude: Primary stack
-
-    Claude->>Glob: Pass 2: file type census<br/>(count ALL extensions recursively,<br/>exclude node_modules/.git/build)
+    Claude->>Glob: Pass 2: file type census<br/>(count extensions, exclude node_modules/.git/build)
     Glob-->>Claude: File counts per extension
-    Claude->>Claude: Map extensions to stacks<br/>Flag secondary stacks (50+ files)
-
-    Claude->>Glob: Pass 2b: frontend detection<br/>(package.json + framework config at root,<br/>apps/*/, packages/*/, web/, client/,<br/>frontend/, ui/, app/, projects/*/)
+    Claude->>Claude: Map extensions → stacks<br/>Flag secondary stacks (50+ files)
+    Claude->>Glob: Pass 2b: frontend detection<br/>(package.json + framework config,<br/>apps/*/, web/, client/, ui/, projects/*/)
     Glob-->>Claude: Candidate frontend roots
-    Claude->>Claude: Set has_frontend flag +<br/>frontend_root_candidates[]<br/>(used by Report phase to offer<br/>/analyze-frontend)
-
     Claude->>FS: Pass 3: tooling + conventions<br/>(formatter, linter, CI, git)
     FS-->>Claude: Tooling profile
 
-    Claude->>User: Detected: primary + secondary<br/>stacks with file counts<br/>Correct? (confirm / override)
-    User-->>Claude: Confirm or correct stack
+    Claude->>User: Detected stack:<br/>  Primary:   <language> <framework><br/>  Secondary: <lang> (<N> files)<br/>  Frontend:  <roots><br/>  Tooling:   <formatter> <linter> <CI><br/>[1] Correct — proceed<br/>[2] Override primary stack<br/>[3] Add/remove secondary stack
+    User-->>Claude: choice
 
     note over Claude,Glob: Detect monorepo
-    Claude->>Glob: Check pnpm-workspace.yaml,<br/>nx.json, go.work, Cargo.toml<br/>[workspace], multiple package.json
+    Claude->>Glob: Check pnpm-workspace.yaml, nx.json,<br/>go.work, Cargo.toml[workspace],<br/>multiple package.json
     Glob-->>Claude: Monorepo signals
 
-    Claude->>User: Type: single-stack /<br/>monorepo / feature monorepo<br/>Confirm?
-    User-->>Claude: Confirmed type
+    Claude->>User: Project type:<br/>[1] Single-stack — one language, one build<br/>[2] Monorepo — multiple packages/apps<br/>[3] Feature monorepo — one language, multiple feature modules<br/>(detected: <suggested type>)
+    User-->>Claude: choice
 
     note over Claude,Glob: Discover modules
     alt Single-stack
-        Claude->>Glob: Scan projects/*, src/*,<br/>packages/*, apps/*
+        Claude->>Glob: Scan projects/*, src/*, packages/*, apps/*
         Glob-->>Claude: Module list
     else Monorepo
         loop For each area
@@ -66,13 +62,13 @@ sequenceDiagram
         end
     end
 
-    Claude->>User: Found N modules:<br/>module-a (85 files)<br/>module-b (30 files)<br/>Add / remove?
-    User-->>Claude: Confirmed module list
+    Claude->>User: Found N modules:<br/>  module-a  (85 files)<br/>  module-b  (30 files)<br/>  ...<br/>[1] Confirm all<br/>[2] Remove specific modules (type numbers)<br/>[3] Add missed path
+    User-->>Claude: choice
 
     note over Claude,Glob: Detect logical layers
-    Claude->>Glob: Group modules by<br/>shared patterns + imports
+    Claude->>Glob: Group modules by shared patterns + imports
     Glob-->>Claude: Module clusters
-    Claude->>Claude: Map clusters to<br/>logical layers
+    Claude->>Claude: Map clusters to logical layers
 
-    Claude->>User: Found N logical layers:<br/>Frontend (3 modules)<br/>Features (20 modules)<br/>Common (2 modules)<br/>Confirm / adjust?
-    User-->>Claude: Confirmed layers
+    Claude->>User: Found N logical layers:<br/>  Frontend  (3 modules)<br/>  Features  (20 modules)<br/>  Common    (2 modules)<br/>[1] Confirm layers<br/>[2] Adjust grouping<br/>[3] Skip layer detection
+    User-->>Claude: choice

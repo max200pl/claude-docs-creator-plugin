@@ -22,6 +22,16 @@ sequenceDiagram
     Claude->>User: CLAUDE.md created (N lines)<br/>Review? Test build commands?
     User-->>Claude: Approve or request edits
 
+    note over Claude,User: Phase: Scaffold base rules
+    Claude->>User: Scaffold starter rules for <stack>?<br/>[1] code-style    — naming, file layout, formatter config<br/>[2] testing       — test location, runner, coverage approach<br/>[3] architecture  — module boundaries + allowed imports<br/>[4] api-design    — REST/gRPC/event contract conventions<br/>[5] security      — forbidden patterns, auth requirements<br/>[A] All of the above<br/>[N] None — I'll add rules manually later
+    User-->>Claude: selection (numbers / A / N)
+
+    loop For each selected rule
+        Claude->>Claude: Generate rule body — stack-aware:<br/>paths: scoped to matching files,<br/>conventions from detected formatter/linter,<br/>examples from actual project structure
+        Claude->>FS: Write .claude/rules/<name>.md
+        FS-->>Claude: OK
+    end
+
     note over Claude,MD: Create module CLAUDE.md files (fan-out)
     Claude->>Claude: Filter modules:<br/>skip trivial (<5 files);<br/>remaining = non_trivial_modules
     Note right of Claude: Deep scan + generation moved out of<br/>main context — one subagent per module<br/>runs in parallel (per rules/fan-out cap)
