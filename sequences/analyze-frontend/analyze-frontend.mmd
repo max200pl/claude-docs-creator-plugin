@@ -59,10 +59,12 @@ sequenceDiagram
     end
 
     note over Claude,Wave2: Phase: Wave 2 — Deep per-axis analysis (parallel, stack-informed)
+    Claude->>Claude: TodoWrite — create checklist before fan-out:<br/>☐ framework-idiom-extractor<br/>☐ design-system-scanner<br/>☐ component-inventory<br/>☐ data-flow-mapper<br/>☐ architecture-analyzer<br/>☐ feature-flow-detector
 
     par For each {frontend_root, specialist} pair — concurrent
         Claude->>Wave2: Invoke one specialist with<br/>{frontend_root, project_root,<br/>stack_profile (from Wave 1),<br/>entry_points, style_rules_path,<br/>target_file_shape}
         Wave2-->>Claude: {summary_row (YAML),<br/>artefact_body (markdown)}<br/>or sentinel SKIP if N/A
+        Claude->>Claude: TodoUpdate — ☑ <specialist-name>
     end
 
     note over Claude,FS: Phase: Persist structured analysis

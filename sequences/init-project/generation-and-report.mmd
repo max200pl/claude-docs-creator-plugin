@@ -33,7 +33,8 @@ sequenceDiagram
     end
 
     note over Claude,MD: Create module CLAUDE.md files (fan-out)
-    Claude->>Claude: Filter modules:<br/>skip trivial (<5 files);<br/>remaining = non_trivial_modules
+    Claude->>Claude: Filter modules — skip trivial (<5 files)
+    Claude->>Claude: TodoWrite — one checkbox per non-trivial module:<br/>☐ module-a/CLAUDE.md<br/>☐ module-b/CLAUDE.md<br/>☐ ...
     Note right of Claude: Deep scan + generation moved out of<br/>main context — one subagent per module<br/>runs in parallel (per rules/fan-out cap)
 
     par For each non-trivial module (parallel fan-out)
@@ -47,6 +48,7 @@ sequenceDiagram
     loop For each non-SKIP content (batch write)
         Claude->>FS: Write module/CLAUDE.md<br/>(verbatim from subagent output)
         FS-->>Claude: OK
+        Claude->>Claude: TodoUpdate — ☑ module/CLAUDE.md
     end
 
     Claude->>User: Created N module CLAUDE.md<br/>files (skipped M trivial)

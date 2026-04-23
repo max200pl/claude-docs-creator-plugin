@@ -35,33 +35,43 @@ sequenceDiagram
         User-->>Claude: Choice
     end
 
-    note over Claude,User: Phase: Preview + approve artefacts
-    Claude->>Claude: Build reference-component-creation-template.md<br/>from JSON per rules/component-creation-<br/>template-format.md
-    Claude->>User: Ready to write artefacts:<br/>  reference-component-creation-template.md  ~N lines (PRIMARY)<br/>  frontend-design-system.md                 ~N lines<br/>  frontend-components.md                    ~N lines<br/>  reference-architecture-frontend.md        ~N lines<br/>  reference-component-inventory.md          ~N lines<br/>  frontend-data-flow.mmd                    ~N lines<br/>  sequences/features/<pattern>.mmd          N files<br/>  CLAUDE.md (## Architecture update)<br/><br/>[1] Write all (default)<br/>[2] Write only template (skip supporting refs)<br/>[3] Choose which to skip<br/>[4] Cancel
+    note over Claude,User: Phase: Assemble + write artefacts
+    Claude->>Claude: TodoWrite — create checklist before starting:<br/>☐ Assemble template sections from JSON<br/>☐ Write reference-component-creation-template.md<br/>☐ Write frontend-design-system.md<br/>☐ Write frontend-components.md<br/>☐ Write reference-architecture-frontend.md<br/>☐ Write reference-component-inventory.md<br/>☐ Write frontend-data-flow.mmd<br/>☐ Write sequences/features/<pattern>.mmd<br/>☐ Update CLAUDE.md ## Architecture
+
+    Claude->>Claude: Assemble template from JSON sections<br/>(tech_stack → framework_idioms → design_system →<br/>component_inventory → data_flow → feature_flows)
+    Claude->>Claude: TodoUpdate — ☑ Assemble template sections from JSON
+
+    Claude->>User: Template ready (~N lines).<br/>Artefacts to write: N files.<br/>[1] Write all  (default)<br/>[2] Write only template<br/>[3] Choose which to skip<br/>[4] Cancel
     User-->>Claude: Choice
 
-    note over Claude,FS: Phase: Write artefacts
-    Claude->>FS: Write .claude/docs/reference-component-creation-template.md<br/>(PRIMARY — for component-creation agent)
+    Claude->>FS: Write .claude/docs/reference-component-creation-template.md
     FS-->>Claude: OK
+    Claude->>Claude: TodoUpdate — ☑ Write reference-component-creation-template.md
+
     opt design_system section non-null
         Claude->>FS: Write .claude/rules/frontend-design-system.md
         FS-->>Claude: OK
+        Claude->>Claude: TodoUpdate — ☑ Write frontend-design-system.md
     end
     opt component_inventory section non-null
         Claude->>FS: Write .claude/rules/frontend-components.md +<br/>.claude/docs/reference-component-inventory.md
         FS-->>Claude: OK
+        Claude->>Claude: TodoUpdate — ☑ Write frontend-components.md
     end
     opt architecture + tech_stack non-null
         Claude->>FS: Write .claude/docs/reference-architecture-frontend.md
         FS-->>Claude: OK
+        Claude->>Claude: TodoUpdate — ☑ Write reference-architecture-frontend.md
     end
     opt data_flow.primary_flow_mermaid non-null
         Claude->>FS: Write .claude/sequences/frontend-data-flow.mmd
         FS-->>Claude: OK
+        Claude->>Claude: TodoUpdate — ☑ Write frontend-data-flow.mmd
     end
     opt feature_flows non-null
-        Claude->>FS: Write .claude/sequences/features/<pattern>.mmd<br/>(one file per diagram_group)
+        Claude->>FS: Write .claude/sequences/features/<pattern>.mmd
         FS-->>Claude: OK
+        Claude->>Claude: TodoUpdate — ☑ Write sequences/features/<pattern>.mmd
     end
 
     note over Claude,FS: Phase: Update root CLAUDE.md Architecture section
