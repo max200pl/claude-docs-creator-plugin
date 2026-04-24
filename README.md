@@ -1,116 +1,75 @@
 # claude-docs-creator
 
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Version](https://img.shields.io/badge/version-0.15.0-green.svg)](.claude-plugin/plugin.json)
+
 Claude Code plugin for authoring, validating, and maintaining `.claude/` documentation in any project. Optimized for **context compression** — scoped rules load only when relevant, so sessions stay small even on large repos.
 
 ## Install
 
-### As a plugin via marketplace (recommended for teams)
-
-The repo IS the marketplace — one command subscribes, second command installs:
-
 ```bash
-# Inside any Claude Code session:
+# Marketplace (recommended)
 /plugin marketplace add github:max200pl/claude-docs-creator
 /plugin install claude-docs-creator@docs-toolkit
-```
 
-Updates later:
-
-```bash
-/plugin marketplace update docs-toolkit
-```
-
-### As a plugin via local clone (for development)
-
-```bash
+# Local clone (development)
 git clone https://github.com/max200pl/claude-docs-creator ~/Projects/claude-docs-creator
 claude --plugin-dir ~/Projects/claude-docs-creator
 ```
 
-Skills are available as `/claude-docs-creator:<skill>` in every session after install.
+After install, skills are available as `/claude-docs-creator:<skill>`.
 
-### Without install (ad-hoc, session-local)
-
-Attach the toolkit as an additional directory per-session:
+**Headless CI** — validate docs in GitHub Actions without an interactive session:
 
 ```bash
-cd ~/Projects/my-app
-claude --add-dir ~/Projects/claude-docs-creator
+cd agents-sdk/doc-validator && npm install
+npm run validate -- /path/to/project   # exit 0 clean · 1 errors · 2 warnings
 ```
 
-## Skills (public — shipped with plugin)
+## Skills
 
-| Command | Scope | What it does |
-| ---- | ---- | ---- |
-| `/init-project <path>` | API | Detect stack, discover modules, scaffold `.claude/` + `CLAUDE.md` |
-| `/create-docs <type> [name]` | API | Scaffold a rule, skill, agent, settings, or doc file |
-| `/update-docs <path> [mode]` | API | Detect drift, refresh docs, move misplaced content |
-| `/validate-claude-docs <path> [fix]` | API | Audit `.claude/` structure + auto-fix trivial issues |
-| `/status <path>` | API | Health dashboard (coverage, staleness, stats) |
-| `/analyze-frontend [path]` | API | Read-only — detect frontends + two-wave fan-out analysis; writes `.claude/state/frontend-analysis.json` |
-| `/create-frontend-docs` | API | Materialize frontend-analysis JSON as `component-creation-template.md` + supporting references + CLAUDE.md update |
-| `/update-frontend-docs <area>` | API | Targeted refresh of one area (design-system / components / data-flow / architecture / framework-idioms / template) |
-| `/create-sequences <name>` | API | Mermaid sequence diagram in target `.claude/sequences/` |
-| `/check-links [path]` | API | Scan `.md`/`.mmd` for broken cross-refs (dead links, stale `@`-imports). Auto-runs as a PostToolUse hook on edited Markdown files. |
-| `/menu` | API | Discovery screen — list of available `/claude-docs-creator:*` commands + quick status |
-| `/create-steps <topic>` | Shared | Step-by-step runbook with rollback |
+### Project docs
 
-Invocation after install: `/claude-docs-creator:<command>` (plugin namespace).
+| Command | What it does |
+| ---- | ---- |
+| `/init-project <path>` | Detect stack, discover modules, scaffold `.claude/` + `CLAUDE.md` |
+| `/create-docs <type> [name]` | Scaffold a rule, skill, agent, settings, or doc file |
+| `/update-docs <path>` | Detect drift between code and docs, refresh and auto-fix |
+| `/validate-claude-docs <path>` | Audit `.claude/` structure; pass `fix` to auto-fix trivial issues |
+| `/status <path>` | Health dashboard — coverage, staleness, stats |
+| `/create-sequences <name>` | Author a Mermaid sequence diagram in `.claude/sequences/` |
+| `/check-links [path]` | Scan `.md`/`.mmd` for broken cross-refs (also runs as a PostToolUse hook) |
+| `/menu` | Discovery screen — all available commands + quick project status |
+| `/create-steps <topic>` | Step-by-step runbook with rollback instructions |
 
-Maintainer-only skills — not shipped with the plugin, live in `.claude/skills/` of this repo: `/sleep` (lint toolkit), `/distill` (session retrospective), `/menu` (command index), `/create-mermaid` (author any Mermaid diagram inside the toolkit repo), `/research` (web research for toolkit rules/roadmap), `/create-tutorial` (ELI5 tutorials for toolkit onboarding).
+### Frontend analysis
 
-## What's Inside
+| Command | What it does |
+| ---- | ---- |
+| `/analyze-frontend [path]` | Read-only — detect frontends + two-wave fan-out; writes `frontend-analysis.json` |
+| `/create-frontend-docs` | Materialize JSON as `component-creation-template.md` + references + CLAUDE.md update |
+| `/update-frontend-docs <area>` | Targeted refresh of one area (design-system / components / data-flow / architecture / framework-idioms / template) |
 
-```text
-.claude-plugin/plugin.json       ← plugin manifest
-skills/<name>/SKILL.md           ← 12 public skills (11 api + 1 shared)
-agents/<name>.md                 ← 9 specialist subagents
-rules/<name>.md                  ← style + process rules (paths:-scoped)
-hooks/hooks.json + *.sh          ← Pre/Post-tool-use + Stop hooks
-docs/*.md + .mmd                 ← how-tos, tutorials, references, research
-sequences/*.mmd                  ← flow diagrams (source of truth per skill)
-output-styles/toolkit-concise.md
-agents-sdk/doc-validator/        ← headless CI validator via Agent SDK
-CLAUDE.md                        ← toolkit's own project instructions
+### API contracts
 
-.claude/skills/<name>/SKILL.md   ← 6 internal skills — maintainer-only,
-                                   not packaged with the plugin
-.claude/state/                   ← local session state (gitignored)
-```
+| Command | What it does |
+| ---- | ---- |
+| `/analyze-api-contracts [path]` | Read-only — detect every communication boundary (HTTP/GraphQL/gRPC/WS/SSE/queues/custom) via two-wave fan-out; writes `api-contracts-analysis.json` |
+| `/create-api-contracts-docs` | Materialize JSON as `reference-api-contracts.md` + `api-data-flow.mmd` + optional CLAUDE.md update |
+| `/update-api-contracts-docs <area>` | Targeted refresh of one axis (http / auth / realtime / errors) |
+| `/create-api-contract [name]` | Spec-first wizard — design a new contract from scratch (HTTP / GraphQL / WS / custom); writes `contract-<name>.md` + sequence diagram |
 
 ## Why context compression matters
 
-A typical 20-module project generates 500+ lines of docs. If everything lives in `CLAUDE.md`, Claude pays the full cost every session — even when editing one file.
+A typical 20-module project generates 500+ lines of docs. If everything lives in `CLAUDE.md`, Claude pays the full cost every session.
 
 This toolkit enforces a split:
 
-- `CLAUDE.md` under 200 lines — loads every session (project goal, stack, commands)
+- `CLAUDE.md` under 200 lines — loads every session
 - `rules/<module>.md` with `paths:` globs — loads only when Claude touches matching files
-- `docs/` — reference prose, loads on demand when a skill explicitly reads it
+- `docs/` — reference prose, loaded on demand by skills
 
 Measured savings on real monorepos: **40-80% context reduction** per session.
 
-## Companion: SDK agent
+---
 
-For headless CI (GitHub Actions, pre-commit), use the Agent SDK wrapper:
-
-```bash
-cd agents-sdk/doc-validator
-npm install
-npm run validate -- /path/to/target-project
-```
-
-Exit code: `0` clean · `1` errors · `2` warnings · `3` setup error.
-
-## Official docs
-
-- [Claude Code plugins](https://code.claude.com/docs/en/plugins)
-- [`.claude/` directory spec](https://code.claude.com/docs/en/claude-directory)
-- [Skills](https://code.claude.com/docs/en/skills)
-- [Sub-agents](https://code.claude.com/docs/en/sub-agents)
-- [Hooks](https://code.claude.com/docs/en/hooks)
-- [Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview)
-
-## License
-
-MIT
+MIT © Maksym Poskannyi — see [LICENSE](LICENSE)
