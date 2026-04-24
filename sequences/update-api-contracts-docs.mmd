@@ -1,44 +1,51 @@
 ---
-title: "update-api-contracts-docs — Preflight → re-run specialist → merge → confirm → write → report"
+title: "update-api-contracts-docs — resolve area → preflight → re-audit → merge → confirm → write → report"
 ---
 %%{init: {'theme': 'neutral'}}%%
 sequenceDiagram
     actor User
     participant Claude
     participant FS as File System
-    participant SP as matching specialist<br/>subagent
+    participant PM as protocol-mapper subagent
 
     User->>Claude: /update-api-contracts-docs <area> [path]
 
     note over Claude: Capture timestamps
 
-    note over Claude,FS: Phase: Preflight
-    Claude->>FS: Check .claude/docs/reference-api-contracts.md exists
-    FS-->>Claude: present / absent
-    alt reference doc absent
-        Claude->>User: reference-api-contracts.md not found<br/>Run /create-api-contracts-docs first
+    note over Claude,FS: Phase: Preflight — resolve area argument
+    Claude->>FS: Check api-contracts-analysis.json and .claude/docs/
+    FS-->>Claude: known boundaries + existing docs
+    alt area is predefined axis (http/auth/realtime/errors/all)
+        Claude->>FS: Require reference-api-contracts.md + JSON
+    else area matches boundary ID in JSON
+        Claude->>FS: Read JSON for boundary descriptor
+    else area matches doc file in .claude/docs/
+        Claude->>FS: Read .claude/docs/<area>.md
+        FS-->>Claude: doc content — identify boundary from it
+    else nothing resolves
+        Claude->>User: Unknown area. Known boundaries: [...] Known docs: [...]
         break Skill aborts
-            Claude->>User: Aborted
+            Claude->>User: Clarify and retry
         end
     end
-    Claude->>FS: Read api-contracts-analysis.json (get roots)
-    FS-->>Claude: {frontend_roots, backend_roots, primary_style}
 
-    note over Claude,SP: Phase: Re-run specialist
-    Claude->>SP: Invoke <area> specialist with<br/>{frontend_roots, backend_roots, primary_style}
-    SP-->>Claude: {axis, findings} or SKIP
+    note over Claude,PM: Phase: Re-audit
+    Claude->>PM: protocol-mapper with boundary descriptor<br/>+ project roots from JSON (or detect if absent)
+    PM-->>Claude: updated findings for this boundary
 
     note over Claude: Phase: Merge
-    Claude->>FS: Read current reference-api-contracts.md
+    Claude->>FS: Read target doc
     FS-->>Claude: current content
-    Claude->>Claude: Replace only <area> section(s)<br/>Preserve all other sections verbatim
-    opt area is http or auth
-        Claude->>Claude: Prepare api-data-flow.mmd diff
+    Claude->>Claude: Replace only changed section(s)<br/>Preserve all other content verbatim
+    opt companion diagram exists (api-<boundary-id>.mmd)
+        Claude->>Claude: Prepare diagram diff
     end
-    Claude->>Claude: Patch api-contracts-analysis.json <area> key
+    opt api-contracts-analysis.json exists
+        Claude->>Claude: Patch matching boundary entry in JSON
+    end
 
     note over Claude,User: Phase: User confirmation
-    Claude->>User: Section diff for <area>:<br/>[before] vs [after]<br/>[1] Accept [2] Abort
+    Claude->>User: Diff for <area>:<br/>[before] vs [after]<br/>[1] Accept [2] Accept all [3] Abort
     User-->>Claude: choice
     alt abort
         break Skill aborts — no writes
@@ -47,16 +54,18 @@ sequenceDiagram
     end
 
     note over Claude,FS: Phase: Write
-    Claude->>FS: Write merged reference-api-contracts.md
-    FS-->>Claude: OK
-    Claude->>FS: Patch api-contracts-analysis.json
+    Claude->>FS: Write updated doc
     FS-->>Claude: OK
     opt diagram updated
-        Claude->>FS: Write .claude/sequences/api-data-flow.mmd
+        Claude->>FS: Write .claude/sequences/api-<boundary-id>.mmd
+        FS-->>Claude: OK
+    end
+    opt JSON patched
+        Claude->>FS: Write api-contracts-analysis.json
         FS-->>Claude: OK
     end
 
     note over Claude,FS: Phase: Report
     Claude->>FS: Write .claude/state/reports/update-api-contracts-docs-<ts>.md
     FS-->>Claude: OK
-    Claude->>User: Updated: <area> section refreshed<br/>Endpoints before/after: N→M
+    Claude->>User: Updated: <area> refreshed in <doc-path><br/>Changes: N sections · M lines

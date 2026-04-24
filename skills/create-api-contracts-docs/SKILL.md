@@ -31,9 +31,17 @@ argument-hint: "[project-path]"
 | Artefact | Path in target project | Content |
 | ---- | ---- | ---- |
 | Protocol reference | `.claude/docs/reference-api-contracts.md` | Endpoints table, auth flow, error conventions, real-time channels |
-| Data flow diagram | `.claude/sequences/api-data-flow.mmd` | Mermaid sequence — auth + one authenticated request round-trip |
+| Per-boundary diagram | `.claude/sequences/api-<boundary-id>.mmd` | One Mermaid sequence per boundary type found in JSON |
 | Architecture update | `CLAUDE.md` (optional) | 3-5 line API summary in Architecture section |
 | Run report | `.claude/state/reports/create-api-contracts-docs-<ts>.md` | Timing, artefact paths |
+
+One diagram file per entry in `boundaries[]` — named after its `boundary_id`:
+
+| boundary_id | Diagram path |
+| ---- | ---- |
+| `http-rest` | `.claude/sequences/api-http-rest.mmd` |
+| `websocket` | `.claude/sequences/api-websocket.mmd` |
+| `custom-rpc-electron` | `.claude/sequences/api-custom-rpc-electron.mmd` |
 
 ## Phases
 
@@ -42,7 +50,7 @@ argument-hint: "[project-path]"
 | Preflight | Verify JSON exists; check existing artefacts with ages |
 | Read JSON | Parse `api-contracts-analysis.json` |
 | Build reference doc | Render endpoints table, auth section, errors section, realtime section |
-| Build sequence diagram | Generate `api-data-flow.mmd` from auth + request round-trip |
+| Build sequence diagrams | Generate one `api-<boundary-id>.mmd` per boundary in JSON |
 | Stage CLAUDE.md patch | Prepare 3-5 line Architecture summary (requires user confirmation) |
 | User confirmation | Present diffs; user accepts per-file |
 | Write artefacts | Write accepted files |
@@ -59,21 +67,47 @@ argument-hint: "[project-path]"
 - **Real-time Channels** — transport, channel/event names, direction, auth
 - **Notes** — orphan endpoints, drift signals, non-conventional patterns
 
-## `api-data-flow.mmd` Coverage
+## Per-boundary Sequence Diagram Template
 
-One Mermaid sequence diagram covering:
+Each `api-<boundary-id>.mmd` covers the canonical round-trip for that boundary. Build from the boundary's findings in JSON.
 
-1. Auth login flow (client → auth endpoint → token returned)
-2. One authenticated request (client attaches token → API → response)
-3. Error path (API returns error → client error handling)
+**HTTP/REST — `api-http-rest.mmd`:**
+```text
+participants: Client, API Server, (Auth Server if JWT)
+1. Auth login: Client → POST /auth/login → token returned
+2. Authenticated request: Client (+ Bearer token) → GET /api/resource → 200 response
+3. Error path: API → 401/422 → Client error handler
+```
 
-If real-time is present: add one WS/SSE channel example.
+**WebSocket/SSE — `api-websocket.mmd` or `api-sse.mmd`:**
+```text
+participants: Client, Server
+1. Connection + auth handshake
+2. Server push event (event name from findings)
+3. Client emit (if bidirectional)
+4. Disconnect / reconnect
+```
+
+**GraphQL — `api-graphql.mmd`:**
+```text
+participants: Client, GraphQL Gateway, (Data Source)
+1. Query/Mutation with variables
+2. Resolver chain (top-level only)
+3. Response / errors[] array
+```
+
+**Custom protocol — `api-<id>.mmd`:**
+Describe the round-trip in plain terms based on the `description` field in JSON. Use generic `Caller` / `Handler` participant labels if the actual names are unclear.
+
+**Style rules:** follow `rules/mermaid-style.md` — neutral theme, no hardcoded colors, short participant aliases.
 
 ## Retrofit Behavior
 
-When `.claude/docs/reference-api-contracts.md` already exists:
+When `.claude/docs/reference-api-contracts.md` or any `api-*.mmd` already exists:
 
 - Present a diff; user confirms overwrite per-file
+- New boundaries in JSON → new diagram files proposed (no overwrite risk)
+- Removed boundaries → orphan diagrams flagged `[WARN]` — user decides to delete or keep
 - `CLAUDE.md` Architecture section — NEVER auto-overwrite; always show diff + require confirmation
 
 ## What This Skill Does NOT Do

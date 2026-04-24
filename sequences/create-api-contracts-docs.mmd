@@ -1,5 +1,5 @@
 ---
-title: "create-api-contracts-docs — Preflight → read JSON → build docs → confirm → write → report"
+title: "create-api-contracts-docs — Preflight → read JSON → build docs → N diagrams → confirm → write → report"
 ---
 %%{init: {'theme': 'neutral'}}%%
 sequenceDiagram
@@ -20,20 +20,26 @@ sequenceDiagram
             Claude->>User: Aborted
         end
     end
-    Claude->>FS: Glob existing artefacts + ages:<br/>.claude/docs/reference-api-contracts.md<br/>.claude/sequences/api-data-flow.mmd
+    Claude->>FS: Glob existing artefacts + ages:<br/>.claude/docs/reference-api-contracts.md<br/>.claude/sequences/api-*.mmd
     FS-->>Claude: file list + ages
 
     note over Claude,FS: Phase: Read JSON
     Claude->>FS: Read api-contracts-analysis.json
-    FS-->>Claude: parsed findings
+    FS-->>Claude: { boundaries: [...], summary }
 
-    note over Claude: Phase: Build artefacts
-    Claude->>Claude: Render reference-api-contracts.md<br/>(endpoints, auth, errors, realtime sections)
-    Claude->>Claude: Generate api-data-flow.mmd<br/>(auth login + authenticated request + error path)
-    Claude->>Claude: Draft CLAUDE.md Architecture patch<br/>(3-5 lines)
+    note over Claude: Phase: Build reference doc
+    Claude->>Claude: Render reference-api-contracts.md<br/>(sections per boundary: endpoints,<br/>auth, errors, realtime)
+
+    note over Claude: Phase: Build per-boundary sequence diagrams
+    loop For each boundary in JSON
+        Claude->>Claude: Generate api-<boundary-id>.mmd<br/>following per-type template<br/>(HTTP / WS / GraphQL / custom)
+    end
+
+    note over Claude: Phase: Stage CLAUDE.md patch
+    Claude->>Claude: Prepare 3-5 line Architecture summary
 
     note over Claude,User: Phase: User confirmation
-    Claude->>User: Proposed writes:<br/>• .claude/docs/reference-api-contracts.md<br/>• .claude/sequences/api-data-flow.mmd<br/>• CLAUDE.md Architecture section (optional)<br/>[1] Accept all [2] Docs only<br/>[3] Per-file [4] Abort
+    Claude->>User: Proposed writes:<br/>• reference-api-contracts.md<br/>• api-<id>.mmd × N (one per boundary)<br/>• CLAUDE.md Architecture section<br/>[1] Accept all [2] Docs only<br/>[3] Per-file [4] Abort
     User-->>Claude: selection
     alt abort
         break Skill aborts — no writes
@@ -46,8 +52,8 @@ sequenceDiagram
         Claude->>FS: Write .claude/docs/reference-api-contracts.md
         FS-->>Claude: OK
     end
-    opt diagram accepted
-        Claude->>FS: Write .claude/sequences/api-data-flow.mmd
+    loop For each accepted diagram
+        Claude->>FS: Write .claude/sequences/api-<boundary-id>.mmd
         FS-->>Claude: OK
     end
     opt CLAUDE.md patch accepted
@@ -58,4 +64,4 @@ sequenceDiagram
     note over Claude,FS: Phase: Report
     Claude->>FS: Write .claude/state/reports/create-api-contracts-docs-<ts>.md
     FS-->>Claude: OK
-    Claude->>User: Artefacts written:<br/>✓ reference-api-contracts.md<br/>✓ api-data-flow.mmd<br/>Next: /update-api-contracts-docs <area> to refresh one section
+    Claude->>User: Written:<br/>✓ reference-api-contracts.md<br/>✓ api-<id>.mmd × N<br/>Next: /update-api-contracts-docs <area> to refresh one section

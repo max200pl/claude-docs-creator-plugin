@@ -1,9 +1,9 @@
 ---
 name: update-api-contracts-docs
 scope: api
-description: "Targeted refresh of one area of reference-api-contracts.md — re-runs the matching specialist subagent, merges result into existing docs. Areas: http / auth / realtime / errors."
+description: "Targeted refresh of a specific API/protocol doc — accepts a boundary ID, predefined axis, or any doc name. Re-runs protocol-mapper for that boundary and merges changes into the existing doc."
 user-invocable: true
-argument-hint: "<area> [project-path]"
+argument-hint: "<boundary-id | axis | doc-name> [project-path]"
 ---
 
 # Update API Contracts Docs
@@ -12,49 +12,67 @@ argument-hint: "<area> [project-path]"
 > Output rules: read `rules/output-format.md`
 > Report rules: read `rules/report-format.md`
 
-**Targeted refresher.** Re-runs one specialist subagent for a specific axis and merges the result into the existing `.claude/docs/reference-api-contracts.md`. Much faster than a full re-scan.
+**Targeted refresher.** Re-audits one boundary or section against the current codebase and merges only the changed parts into the existing doc. Much faster than a full re-scan.
 
 ## Usage
 
 ```text
-/update-api-contracts-docs http           # refresh endpoints + handlers
-/update-api-contracts-docs auth           # refresh auth flow section
-/update-api-contracts-docs realtime       # refresh WS/SSE/queue channels
-/update-api-contracts-docs errors         # refresh error conventions
-/update-api-contracts-docs all            # re-run all (same as /analyze-api-contracts + /create-api-contracts-docs)
+/update-api-contracts-docs http-rest              # refresh HTTP boundary
+/update-api-contracts-docs websocket              # refresh WebSocket boundary
+/update-api-contracts-docs cpp-sciter-bridge      # refresh any custom boundary by ID
+/update-api-contracts-docs reference-cpp-sciter-bridge  # update a named doc directly
+/update-api-contracts-docs auth                   # shorthand axis: refresh auth section only
+/update-api-contracts-docs errors                 # shorthand axis: refresh error conventions only
+/update-api-contracts-docs all                    # re-run all boundaries (full refresh)
 ```
 
-## Area → Specialist Mapping
+## Argument Resolution
 
-| Area | Specialist re-run | Sections updated |
-| ---- | ---- | ---- |
-| `http` | `protocol-http-mapper` | Endpoints table, orphan list |
-| `auth` | `protocol-auth-mapper` | Auth Flow section, `api-data-flow.mmd` auth fragment |
-| `realtime` | `protocol-realtime-mapper` | Real-time Channels section |
-| `errors` | `protocol-error-mapper` | Error Conventions section |
-| `all` | all 4 specialists | all sections |
+The `<area>` argument is resolved in order:
+
+1. **Predefined axis** (`http`, `auth`, `realtime`, `errors`, `all`) → updates the matching
+   section(s) inside `reference-api-contracts.md`
+2. **Boundary ID** from `api-contracts-analysis.json` (e.g. `http-rest`, `websocket`,
+   `cpp-sciter-bridge`) → re-runs `protocol-mapper` for that boundary; updates
+   `api-<boundary-id>.mmd` + the matching section in `reference-api-contracts.md`
+3. **Doc name** — anything else is treated as a doc filename:
+   - Look for `.claude/docs/<area>.md` first
+   - Then `.claude/docs/reference-<area>.md`
+   - Read the doc to identify the boundary it describes, then re-run `protocol-mapper`
+     for that boundary and merge changes into the doc
+
+If nothing resolves, show the user the list of known boundaries and existing docs.
+
+## Preflight
+
+| Condition | Action |
+| ---- | ---- |
+| Predefined axis | Require `reference-api-contracts.md` + `api-contracts-analysis.json` |
+| Boundary ID | Require `api-contracts-analysis.json`; `reference-api-contracts.md` optional |
+| Doc name | Require the named doc file; JSON optional (re-scan from code if absent) |
+| Nothing found | List available docs + boundary IDs; ask user to clarify |
 
 ## Phases
 
 | Phase | What happens |
 | ---- | ---- |
-| Preflight | Verify `reference-api-contracts.md` exists; read `api-contracts-analysis.json` for roots |
-| Re-run specialist | Invoke matching subagent with current project state |
-| Merge | Replace only the affected section(s) in the existing reference doc |
-| Update JSON | Patch the matching key in `api-contracts-analysis.json` |
-| User confirmation | Show section diff; user confirms |
-| Write | Write merged doc + patched JSON |
+| Preflight | Resolve area argument; find target doc(s); check what exists |
+| Re-audit | Re-run `protocol-mapper` subagent for the identified boundary |
+| Merge | Replace only the changed section(s); preserve everything else |
+| Update JSON | Patch the matching entry in `api-contracts-analysis.json` if it exists |
+| User confirmation | Show diff of affected sections; user confirms per-file |
+| Write | Write merged doc(s) |
 | Report | Print what changed |
 
 ## Merge Rules
 
-- Only the section(s) owned by the selected area are replaced — other sections are preserved verbatim.
-- If `api-data-flow.mmd` needs updating (area = `http` or `auth`), present the diagram diff separately.
-- `CLAUDE.md` Architecture section — NEVER touched by `update-api-contracts-docs`; only `/create-api-contracts-docs` manages it.
+- Only sections owned by the selected area are replaced — all other sections preserved verbatim.
+- Companion `.mmd` diagrams (e.g. `api-<boundary-id>.mmd`) are updated when their boundary is refreshed; diff presented separately.
+- `CLAUDE.md` Architecture section — NEVER touched by `update-api-contracts-docs`.
 
 ## What This Skill Does NOT Do
 
-- Full re-scan (use `/analyze-api-contracts` for that)
+- Full re-scan of all boundaries (use `/analyze-api-contracts` for that)
 - Create docs from scratch (use `/create-api-contracts-docs`)
 - Touch `CLAUDE.md`
 - Modify source code
