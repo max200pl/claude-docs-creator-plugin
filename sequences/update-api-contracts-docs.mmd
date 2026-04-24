@@ -1,0 +1,62 @@
+---
+title: "update-api-contracts-docs — Preflight → re-run specialist → merge → confirm → write → report"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    actor User
+    participant Claude
+    participant FS as File System
+    participant SP as matching specialist<br/>subagent
+
+    User->>Claude: /update-api-contracts-docs <area> [path]
+
+    note over Claude: Capture timestamps
+
+    note over Claude,FS: Phase: Preflight
+    Claude->>FS: Check .claude/docs/reference-api-contracts.md exists
+    FS-->>Claude: present / absent
+    alt reference doc absent
+        Claude->>User: reference-api-contracts.md not found<br/>Run /create-api-contracts-docs first
+        break Skill aborts
+            Claude->>User: Aborted
+        end
+    end
+    Claude->>FS: Read api-contracts-analysis.json (get roots)
+    FS-->>Claude: {frontend_roots, backend_roots, primary_style}
+
+    note over Claude,SP: Phase: Re-run specialist
+    Claude->>SP: Invoke <area> specialist with<br/>{frontend_roots, backend_roots, primary_style}
+    SP-->>Claude: {axis, findings} or SKIP
+
+    note over Claude: Phase: Merge
+    Claude->>FS: Read current reference-api-contracts.md
+    FS-->>Claude: current content
+    Claude->>Claude: Replace only <area> section(s)<br/>Preserve all other sections verbatim
+    opt area is http or auth
+        Claude->>Claude: Prepare api-data-flow.mmd diff
+    end
+    Claude->>Claude: Patch api-contracts-analysis.json <area> key
+
+    note over Claude,User: Phase: User confirmation
+    Claude->>User: Section diff for <area>:<br/>[before] vs [after]<br/>[1] Accept [2] Abort
+    User-->>Claude: choice
+    alt abort
+        break Skill aborts — no writes
+            Claude->>User: Aborted
+        end
+    end
+
+    note over Claude,FS: Phase: Write
+    Claude->>FS: Write merged reference-api-contracts.md
+    FS-->>Claude: OK
+    Claude->>FS: Patch api-contracts-analysis.json
+    FS-->>Claude: OK
+    opt diagram updated
+        Claude->>FS: Write .claude/sequences/api-data-flow.mmd
+        FS-->>Claude: OK
+    end
+
+    note over Claude,FS: Phase: Report
+    Claude->>FS: Write .claude/state/reports/update-api-contracts-docs-<ts>.md
+    FS-->>Claude: OK
+    Claude->>User: Updated: <area> section refreshed<br/>Endpoints before/after: N→M

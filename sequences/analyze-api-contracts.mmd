@@ -1,0 +1,62 @@
+---
+title: "analyze-api-contracts — Preflight → detect → orientation → N×mapper → write JSON → report"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    actor User
+    participant Claude
+    participant FS as File System
+    participant PD as protocol-detector<br/>subagent (Wave 1)
+    participant PM as protocol-mapper<br/>subagents (Wave 2, N parallel)
+
+    User->>Claude: /analyze-api-contracts [path] [--only <id>]
+
+    note over Claude: Capture timestamps (START_TS, RUN_TS)
+
+    note over Claude,FS: Phase: Preflight
+    Claude->>FS: Check .claude/ exists
+    FS-->>Claude: present / absent
+    alt .claude/ absent
+        Claude->>User: No .claude/ found — run /init-project first
+        break Skill aborts
+            Claude->>User: Aborted
+        end
+    end
+    Claude->>FS: Read existing api-contracts-analysis.json (age check)
+    FS-->>Claude: file + age, or absent
+
+    note over Claude,PD: Phase: Wave 1 — Detect boundaries
+    Claude->>PD: Invoke with {project_root, path_hint}
+    Note right of PD: Scans deps, config files,<br/>first-level grep. Returns<br/>boundary descriptors for<br/>every type detected —<br/>standard or custom.
+    PD-->>Claude: { boundaries: [{id, label, signals, roots}, ...] }
+    alt No boundaries detected
+        Claude->>User: No external communication found
+        break Skill aborts
+            Claude->>User: Nothing to analyze
+        end
+    end
+
+    note over Claude,User: Phase: Orientation (checkpoint)
+    Claude->>User: Found N boundaries:<br/>• http-rest (high confidence)<br/>• websocket (medium)<br/>• custom-rpc-electron (low)<br/>Existing JSON: <age or absent><br/>[1] Map all [2] --only <id><br/>[3] Skip (fresh)
+    User-->>Claude: selection
+
+    note over Claude,PM: Phase: Wave 2 — Map each boundary (parallel)
+    par For each boundary matching selection
+        Claude->>PM: Invoke with {boundary descriptor,<br/>project_root}
+        Note right of PM: Generic mapper — works for<br/>any protocol. Maps: endpoints,<br/>auth, errors, call-sites.<br/>Describes custom protocols<br/>in plain terms.
+        PM-->>Claude: {boundary_id, endpoints, auth,<br/>errors, call_sites} or SKIP
+    end
+    alt Any mapper failed
+        Claude->>Claude: Log error in report Notes; continue
+    end
+
+    note over Claude,FS: Phase: Assemble + write JSON
+    Claude->>Claude: Merge N mapper results into JSON
+    Claude->>FS: Write .claude/state/api-contracts-analysis.json
+    FS-->>Claude: OK
+
+    note over Claude,FS: Phase: Report
+    Claude->>Claude: END_TS = now; wall_clock = END_TS - START_TS
+    Claude->>FS: Write .claude/state/reports/analyze-api-contracts-<ts>.md
+    FS-->>Claude: OK
+    Claude->>User: N boundaries mapped<br/>JSON saved → run /create-api-contracts-docs
