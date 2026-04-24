@@ -12,6 +12,13 @@
 # When invoked as a hook, output is wrapped in JSON systemMessage.
 set -u
 
+# ANSI colors — disabled if NO_COLOR is set (https://no-color.org/)
+if [ -z "${NO_COLOR:-}" ]; then
+  _R=$'\033[31m' _Y=$'\033[33m' _G=$'\033[32m' _B=$'\033[1m' _0=$'\033[0m'
+else
+  _R='' _Y='' _G='' _B='' _0=''
+fi
+
 MODE_HOOK=0
 MODE_ALL=0
 MODE_DIR=""
@@ -127,7 +134,7 @@ scan_file() {
       fi
       target="$(normalize_path "$target")"
       if [ ! -e "$target" ]; then
-        echo "[WARN] $file:$line_num → $path_clean (not found)"
+        echo "${_Y}[WARN]${_0} $file:$line_num → $path_clean (not found)"
         warn_count=$((warn_count + 1))
         continue
       fi
@@ -135,7 +142,7 @@ scan_file() {
         local rel_target="${target#"$REPO_ROOT"/}"
         local tgt_layer; tgt_layer="$(classify_layer "$rel_target")"
         if [ "$tgt_layer" = "internal" ]; then
-          echo "[ERR]  $file:$line_num → $path_clean (public→internal layer violation)"
+          echo "${_R}[ERR]${_0}  $file:$line_num → $path_clean (public→internal layer violation)"
           warn_count=$((warn_count + 1))
         fi
       fi
@@ -179,13 +186,13 @@ done <<< "$TARGETS"
 if [ "$TOTAL_WARN" -gt 0 ]; then
   if [ "$MODE_HOOK" -eq 1 ]; then
     # Emit as systemMessage for Claude Code to display
-    msg="⚠ ${TOTAL_WARN} broken link(s):
+    msg="${_Y}⚠${_0} ${_B}${TOTAL_WARN} broken link(s):${_0}
 ${OUTPUT}"
     jq -n --arg m "$msg" '{systemMessage: $m}' 2>/dev/null || printf '%s\n' "$msg" >&2
     exit 0  # don't block writes from hook
   else
     printf '%s' "$OUTPUT"
-    printf -- '---\n%d broken ref(s)\n' "$TOTAL_WARN"
+    printf -- "${_B}---%s\n${_R}%d broken ref(s)${_0}\n" "" "$TOTAL_WARN"
     exit 2
   fi
 fi
@@ -193,6 +200,6 @@ fi
 if [ "$MODE_HOOK" -eq 0 ]; then
   # Standalone: print clean
   files_scanned=$(printf '%s\n' "$TARGETS" | grep -c .)
-  printf '[OK] %d file(s) scanned, no broken refs.\n' "$files_scanned"
+  printf "${_G}[OK]${_0} %d file(s) scanned, no broken refs.\n" "$files_scanned"
 fi
 exit 0

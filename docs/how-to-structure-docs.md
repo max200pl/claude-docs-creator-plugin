@@ -40,6 +40,38 @@ A tutorial past 400 lines (`[WARN]`) almost always covers multiple workflows. Sp
 6. Each part becomes ≤150 lines with its own `Prerequisites`, `Steps`, `Verify` sections.
 7. Grep for the old filename: `grep -rn 'tutorial-<topic>.md' .claude/ CLAUDE.md` — update every reference to `tutorial-<topic>/index.md`.
 
+## Recipe: Extract a Large `## Reference` Section From SKILL.md
+
+When a `SKILL.md` file exceeds 200 lines and most of the content is in a `## Reference` section (per-phase implementation details, lookup tables, example templates), extract the reference content to a standalone doc:
+
+1. Create `docs/reference-<skill>-phases.md` with a title and intro line:
+
+   ```markdown
+   # /<skill> — Phase Reference
+
+   > Consumed by `skills/<skill>/SKILL.md`. Detailed implementation instructions for each phase.
+   ```
+
+2. Copy the full `## Reference` body into the new file. Promote `### Phase` headings to `##` level since they're now top-level.
+
+3. In the SKILL.md `## Reference` section, replace the body with a single pointer:
+
+   ```markdown
+   ## Reference
+
+   Phase-by-phase implementation details: [`docs/reference-<skill>-phases.md`](../../docs/reference-<skill>-phases.md)
+   ```
+
+4. Add `> Phase reference: read \`docs/reference-<skill>-phases.md\`` to the SKILL.md preamble so Claude loads it automatically.
+
+5. Fix any relative links inside the extracted file (paths like `../../rules/` need to become `../rules/` since the doc is now in `docs/`, not `skills/<skill>/`).
+
+**When to apply:** SKILL.md over 200 lines where the `## Reference` section alone is 100+ lines. The orchestration logic (composition table, interactive wizard, usage) stays in SKILL.md; only the phase-level implementation detail moves out.
+
+**When NOT to apply:** SKILL.md where every section is orchestration-level — no single section dominates. Forcing a split then creates an empty pointer without useful condensation.
+
+---
+
 ## Recipe: Split a Large `how-to-<topic>.md`
 
 A how-to past 200 lines usually conflates two problems. Split horizontally:

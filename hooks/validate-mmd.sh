@@ -4,6 +4,13 @@
 # no direction inside subgraphs. Optional: run `mmdc --parse` if installed.
 set -u
 
+# ANSI colors — disabled if NO_COLOR is set (https://no-color.org/)
+if [ -z "${NO_COLOR:-}" ]; then
+  _R=$'\033[31m' _Y=$'\033[33m' _B=$'\033[1m' _0=$'\033[0m'
+else
+  _R='' _Y='' _B='' _0=''
+fi
+
 f=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty' 2>/dev/null)
 [ -z "$f" ] && exit 0
 case "$f" in *.mmd) ;; *) exit 0 ;; esac
@@ -37,8 +44,8 @@ if command -v mmdc >/dev/null 2>&1; then
 fi
 
 if [ ${#errs[@]} -gt 0 ]; then
-  body=$(printf '  • %s\n' "${errs[@]}")
-  msg=$(printf 'Mermaid style issues in %s:\n%s' "$f" "$body")
+  body=$(printf "  ${_Y}•${_0} %s\n" "${errs[@]}")
+  msg=$(printf "${_Y}Mermaid style issues${_0} in ${_B}%s${_0}:\n%s" "$f" "$body")
   jq -n --arg m "$msg" '{systemMessage: $m}'
 fi
 exit 0
