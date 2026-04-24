@@ -1,0 +1,59 @@
+---
+title: "create-api-contract — type → details → spec → diagram → stubs"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    actor User
+    participant Claude
+    participant FS as File System
+
+    User->>Claude: /create-api-contract [name] [--type <t>]
+
+    note over Claude,User: Phase 1 — Protocol type
+    alt type not given
+        Claude->>User: [1] HTTP [2] GraphQL [3] WebSocket [4] Custom
+        User-->>Claude: selection
+    end
+
+    note over Claude,User: Phase 2 — Contract details
+    Claude->>User: Essential fields for <type>:<br/>(method+path / operation name / event name / protocol name)
+    User-->>Claude: answers
+    Claude->>User: Optional fields:<br/>(auth, errors, response shape)
+    User-->>Claude: answers
+
+    note over Claude: Phase 3 — Build spec
+    Claude->>Claude: Render contract-<name>.md<br/>from collected fields
+
+    note over Claude: Phase 4 — Build sequence diagram
+    Claude->>Claude: Generate contract-<name>.mmd<br/>showing request round-trip
+
+    note over Claude,User: Phase 5 — Preview + confirm
+    Claude->>User: Preview of contract-<name>.md<br/>and contract-<name>.mmd<br/>[1] Accept [2] Edit details [3] Abort
+    User-->>Claude: choice
+    alt edit
+        Claude->>User: Which field to change?
+        User-->>Claude: correction
+        Claude->>Claude: Re-render
+        Claude->>User: Updated preview
+        User-->>Claude: Accept
+    end
+    alt abort
+        break Skill aborts
+            Claude->>User: Aborted, no files written
+        end
+    end
+
+    note over Claude,FS: Write artefacts
+    Claude->>FS: Write .claude/docs/contract-<name>.md
+    FS-->>Claude: OK
+    Claude->>FS: Write .claude/sequences/contract-<name>.mmd
+    FS-->>Claude: OK
+
+    note over Claude,User: Phase 6 — Optional stubs
+    Claude->>User: Generate code stubs?<br/>[1] Backend + frontend [2] Backend only<br/>[3] Frontend only [4] Skip
+    User-->>Claude: choice
+    opt stubs requested
+        Claude->>User: Stubs printed in chat<br/>(not written to source files)
+    end
+
+    Claude->>User: Contract created:<br/>.claude/docs/contract-<name>.md<br/>.claude/sequences/contract-<name>.mmd<br/>Next: /analyze-api-contracts to verify implementation matches spec
