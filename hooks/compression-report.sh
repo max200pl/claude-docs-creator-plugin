@@ -8,7 +8,9 @@
 # baseline; subsequent runs show delta and update the snapshot.
 
 set -u
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+# CLAUDE_PROJECT_DIR is set by Claude Code to the consumer project root.
+# Fall back to git top-level (works when running the toolkit on itself).
+REPO_ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$REPO_ROOT" || exit 0
 
 # Only run in projects that have been initialized with the toolkit.
@@ -35,7 +37,11 @@ claude_md_lines=$(count_lines "CLAUDE.md")
 unconditional_rule_lines=0
 unconditional_rule_count=0
 conditional_rule_count=0
-for r in rules/*.md; do
+# Consumer projects store rules in .claude/rules/; the toolkit itself uses rules/ at root.
+RULES_DIR=".claude/rules"
+[[ -d "$RULES_DIR" ]] || RULES_DIR="rules"
+
+for r in "$RULES_DIR"/*.md; do
   [[ -f "$r" ]] || continue
   if has_paths_frontmatter "$r"; then
     conditional_rule_count=$((conditional_rule_count + 1))
@@ -75,9 +81,8 @@ if [[ "$total_autoload" == "0" ]]; then
   exit 0
 fi
 
-# Write new snapshot
+# Write new snapshot (no timestamp — it would change every run and pollute git diffs)
 cat > "$SNAP" <<EOF
-timestamp=$(date +%s)
 autoload_lines=${total_autoload}
 claude_md_lines=${claude_md_lines}
 rules_unconditional=${unconditional_rule_count}

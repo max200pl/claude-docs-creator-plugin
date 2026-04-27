@@ -54,8 +54,8 @@ npm run validate -- /path/to/project   # exit 0 clean · 1 errors · 2 warnings
 | Command | What it does |
 | ---- | ---- |
 | `/analyze-api-contracts [path]` | Read-only — detect every communication boundary (HTTP/GraphQL/gRPC/WS/SSE/queues/custom) via two-wave fan-out; writes `api-contracts-analysis.json` |
-| `/create-api-contracts-docs` | Materialize JSON as `reference-api-contracts.md` + `api-data-flow.mmd` + optional CLAUDE.md update |
-| `/update-api-contracts-docs <area>` | Targeted refresh of one axis (http / auth / realtime / errors) |
+| `/create-api-contracts-docs` | Materialize JSON as `reference-api-contracts.md` + per-boundary sequence diagrams + optional CLAUDE.md update |
+| `/update-api-contracts-docs <area>` | Targeted refresh — accepts boundary ID, axis (http/auth/realtime/errors), or any doc name |
 | `/create-api-contract [name]` | Spec-first wizard — design a new contract from scratch (HTTP / GraphQL / WS / custom); writes `contract-<name>.md` + sequence diagram |
 
 ## Why context compression matters
