@@ -60,7 +60,18 @@ Many dimensions map directly to the `package.json` → `dependencies` + `devDepe
 
 Keep scans light. Read: `package.json`, config files in root (tsconfig, vite/webpack/rollup/turbo, tailwind/uno, biome/eslint/prettier, browserslist). Do NOT deep-read `src/`.
 
-## Output Format
+## Output Format — TWO STREAMS
+
+> **Schema 1.3 contract** — see [`reference-frontend-analysis-schema.md`](../docs/reference-frontend-analysis-schema.md) for canonical definition. This section must conform.
+>
+> Each scan emits **two streams**:
+>
+> 1. **Structured YAML** (`## Summary Row`) — slim JSON fragment for `frontend-analysis.json` (driver fields only, all 18 CORE fields documented in schema)
+> 2. **Markdown Content** (`## Markdown Content`) — RULES content for `.claude/rules/frontend-tech-stack.md` (surprises, conflicts, version flags) and `## Notes` section for `.md` files
+>
+> Emit BOTH. Old `notes` field as YAML top-level value is **forbidden** — route surprises to Markdown Content stream.
+
+### Stream 1 — Structured YAML
 
 ```markdown
 ## Summary Row
@@ -68,28 +79,44 @@ Keep scans light. Read: `package.json`, config files in root (tsconfig, vite/web
 ```yaml
 frontend_root: <absolute path>
 relative: <project_root-relative path>
+
+# Core stack — REQUIRED
 framework: <canonical name>
 framework_version: <major.minor or "unknown">
 language: typescript | javascript | mixed
-bundler: <one value>
-package_manager: <one value>
-rendering_mode: <one value>
 ts_strictness: strict | loose | off | n/a
+package_manager: <one value>
+bundler: <one value>
+rendering_mode: <one value>
+routing: <one value>
+
+# Styling — REQUIRED
 styling_model: tailwind-utilities-inline | tailwind-cn-composition | css-modules | css-in-js-styled-components | css-in-js-emotion | vanilla-css-bem | vanilla-scss-modules | shadcn-copy-with-cva | framework-scoped-sfc | sciter-scss-local | mixed | none
 class_naming: none-tailwind-only | bem | css-modules-auto | styled-var-name | cva-variants | cn-helper-composition | custom-prefix | auto-scoped | none
-custom_class_prefix: <empty unless class_naming == custom-prefix — e.g., "app-", "sciter-">
-styling_approach_detail: <legacy field for prose — "Tailwind with custom config in tailwind.config.ts">
+custom_class_prefix: <empty unless class_naming == custom-prefix>
 styling_system:
   type: plain-css | sass | scss | css-modules | postcss | styled-components | tailwind | inline | mixed
   entry_file: <relative path to main CSS entry — e.g. "src/styles/main.css", "res/main.css", or "none">
   import_syntax: "@import" | "@use" | "@forward" | "none"
+
+# Data + state — REQUIRED
 state_management: [<libs>]
-routing: <one value>
 data_fetching: [<libs>]
+
+# UI library — REQUIRED
 ui_library: [<libs>]
+
+# Tooling — REQUIRED
 testing: [<libs>]
 linting: [<tools>]
 ```
+
+#### Forbidden in YAML stream
+
+| Legacy field | Where it goes now |
+| ---- | ---- |
+| `notes` (prose blob or array of strings) | Markdown Content → `.claude/rules/frontend-tech-stack.md` |
+| `styling_approach_detail` (prose paragraph) | Markdown Content → `.claude/docs/reference-architecture-frontend.md` Stack section |
 
 **Critical for reference-component-creation-template.md — the downstream agent reads `styling_model` and `class_naming` to know whether new components create CSS files at all, whether custom class names are allowed, and how to reference design tokens.**
 
@@ -171,15 +198,34 @@ reason: "no package.json or framework config — frontend-detector over-matched"
 SKIP
 ```
 
-## Notes Section (Optional)
+### Stream 2 — Markdown Content (RULES + notes for .md)
 
-Surface surprises:
+After the YAML, emit a `## Markdown Content` section (per [`reference-frontend-analysis-schema.md` § Subagent Output Protocol](../docs/reference-frontend-analysis-schema.md#subagent-output-protocol)) with subsection routing to RULES files. Orchestrators route each `### → <path>` H3 to its target.
 
-- Framework version well below current LTS (suggest upgrade)
-- Conflicting tooling (two bundlers' configs present)
-- `strict: false` in tsconfig when TypeScript is supposed to be strict
-- Dev-only dependencies accidentally in `dependencies`
-- Empty test directory — says "Jest installed" but no tests
+```markdown
+## Markdown Content
+
+### → `.claude/rules/frontend-tech-stack-<root>.md` (RULES file)
+
+(Emit only if there are surprises to flag. RULES content for the tech-stack
+configuration that the team should follow or be aware of. Examples below.)
+
+#### Surprises and gotchas
+
+- Framework version is below current LTS — consider upgrade
+- Conflicting tooling — both webpack.config and vite.config present; the active build is via vite (per package.json)
+- `strict: false` in tsconfig — strict-mode patterns will not be enforced
+- Empty test directory — Jest is installed but no `*.test.{ts,tsx}` files exist
+- Dev-only dependency `lodash` appears in `dependencies` block (should be devDependencies)
+
+### → `.claude/docs/reference-architecture-frontend-<root>.md` (Stack section)
+
+(Emit short prose for the Stack section. Replaces legacy `styling_approach_detail` field.)
+
+The project uses <framework> with <styling-model>. <one-paragraph context: what makes this stack notable, any unusual configuration, build pipeline overview>.
+```
+
+Routing follows canonical naming convention — see schema doc. Single-root projects drop `<root>` placeholder; multi-root projects substitute root-slug + drop `reference-` prefix in `.claude/docs/` paths.
 
 ## What You Are NOT
 

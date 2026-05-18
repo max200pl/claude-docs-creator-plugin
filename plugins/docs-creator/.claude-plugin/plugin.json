@@ -1,7 +1,7 @@
 {
   "name": "docs-creator",
   "description": "Generate and maintain .claude/ documentation for any project.",
-  "version": "0.19.4",
+  "version": "0.19.5",
   "author": {
     "name": "Maksym Poskannyi"
   },

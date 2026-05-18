@@ -117,27 +117,77 @@ Skip if no deploy config is present — out of core architecture concern.
 
 Keep scans light. Read: `tsconfig.json`, framework config, a handful of route files (2-3 to understand pattern), 1-2 layout files.
 
-## Output Format
+## Output Format — TWO STREAMS
+
+> **Schema 1.3 contract** — see [`reference-frontend-analysis-schema.md`](../docs/reference-frontend-analysis-schema.md#block-3--architecture). Conform to canonical field names + two-stream protocol.
+
+### Stream 1 — Structured YAML
 
 ```markdown
 ## Summary Row
 
 ```yaml
 frontend_root: <absolute path>
-organizing_principle: feature-folders | layer-based | fsd | atomic | framework-dictated | flat
-top_level_dirs: [<names>]
-routing_style: file-system | declarative | hybrid
-nested_layouts_supported: <boolean>
-has_middleware: <boolean>
-server_client_boundary: rsc | page-server | islands | none
-hydration_model: full | islands | progressive | none
-barrel_files: yes-extensive | yes-minimal | none
-path_aliases_configured: <boolean>
-build_output: <path>
-code_splitting: route-based | component-lazy | islands | mixed
+relative: <project_root-relative path>
+
+# Layer organization — REQUIRED
+architecture_pattern: <"feature-sliced-design" | "atomic-design" | "by-domain" | "by-layer" | "feature-folders" | "framework-dictated" | "flat" | "custom">
+                                          # canonical (was 'organizing_principle' in legacy)
+folder_boundary_style: <"strict-fsd" | "loose-feature" | "by-type" | "flat" | "mixed">
+                                          # canonical (was 'folder_boundaries' in legacy)
+top_level_dirs: [<string>]                # e.g. ["app", "widgets", "pages", "shared"]
+
+# Routing + layout — REQUIRED
+routing_style: <"file-based" | "config-based" | "imperative" | "static" | "router-lib">
+layout_composition: <string>              # short prose: e.g. "Caption + AsidePanel + Content"
+code_splitting: <"route-based" | "component-based" | "manual" | "none">
+
+# SSR + boundaries — REQUIRED
+ssr_client_boundary: <"no-ssr" | "use-client" | "directive-based" | "page-level" | "n/a-sciter">
+                                          # canonical (was 'ssr_boundaries' in legacy)
+public_exports: <"index-barrel" | "explicit-imports" | "no-barrel">
+
+# Window-size (Sciter-specific, OPTIONAL)
+window_size: <string>                     # e.g. "700×460dip", "fixed-390dip-width"; "" if not applicable
+                                          # canonical (legacy had 'window_system' typo — fix to 'window_size')
 ```
 
-## reference-architecture-frontend.md (Architecture section)
+#### Forbidden in YAML stream
+
+| Legacy field | Where it goes now |
+| ---- | ---- |
+| `organizing_principle` | Rename to `architecture_pattern` (canonical) |
+| `folder_boundaries` | Rename to `folder_boundary_style` (canonical) |
+| `ssr_boundaries` | Rename to `ssr_client_boundary` (canonical) |
+| `window_system` | **TYPO** — rename to `window_size` (canonical) |
+| `notes` (array of layer-import rules) | Markdown Content → `.claude/rules/frontend-architecture-<root>.md` (RULES file) |
+| `entry_chain` (PC-only narrative) | Markdown Content → `.claude/docs/reference-architecture-frontend-<root>.md` |
+| `structural_changes` | Top-level `drift.architecture` |
+| `nested_layouts_supported`, `has_middleware`, `barrel_files`, `path_aliases_configured`, `build_output`, `hydration_model`, `server_client_boundary` | Either drop (low-signal) or move to NARRATIVE Markdown Content if useful for downstream |
+
+### Stream 2 — Markdown Content
+
+```markdown
+## Markdown Content
+
+### → `.claude/rules/frontend-architecture-<root>.md` (RULES file)
+
+(Emit array of layer-import rules and architecture conventions as a bulleted list.)
+
+#### Layer rules
+
+- FSD import rule: layer may only import from layers below it (app→widgets→features→entities→shared)
+- New pages: <project-specific instructions>
+- New widgets: <project-specific instructions>
+- No path aliases — all imports use relative paths
+- (other observed rules)
+
+### → `.claude/docs/reference-architecture-frontend-<root>.md` (NARRATIVE — Architecture section)
+
+(Prose paragraph describing the architecture organization, entry chain, layout composition; routes / data fetching; quirks specific to this project. ~2-3 paragraphs.)
+```
+
+## reference-architecture-frontend.md (Architecture section — legacy template)
 
 ### Architecture
 

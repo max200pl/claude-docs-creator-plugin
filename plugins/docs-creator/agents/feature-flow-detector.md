@@ -138,40 +138,66 @@ For each classified feature read:
 
 Use the actual names from the source, not generic names.
 
-## Output format
+## Output format — TWO STREAMS
 
-### `## Summary Row`
+> **Schema 1.3 contract** — see [`reference-frontend-analysis-schema.md`](../docs/reference-frontend-analysis-schema.md#block-8--feature_flows). Conform to canonical field names + two-stream protocol.
 
-```json
-{
-  "feature_roots_scanned": <int>,
-  "sampled_only_count": <int>,
-  "patterns_detected": ["<pattern>", ...],
-  "features": [
-    {
-      "name": "<FeatureName>",
-      "path": "<relative/path>",
-      "entry_file": "<FileName.ext>",
-      "pattern": "<pattern>",
-      "data_sources": ["<source description>"],
-      "props_down": ["<propName>"],
-      "callbacks_up": ["<callbackName(args)>"],
-      "state_shape": "{ <field>: <type>, ... }",
-      "sampled_only": false,
-      "notes": ""
-    }
-  ],
-  "diagram_groups": [
-    {
-      "diagram_name": "<pattern>",
-      "features": ["<FeatureName>", ...],
-      "mermaid_hint": "<one-sentence description of the canonical flow for this pattern, using actual actor names>"
-    }
-  ]
-}
+### Stream 1 — Structured YAML
+
+```markdown
+## Summary Row
+
+```yaml
+frontend_root: <absolute path>
+relative: <project_root-relative path>
+
+# Required driver fields
+total_features: <int>
+pattern_distribution: <object>          # map of pattern-name → count
+                                        # e.g. {"scan-loop": 3, "query-display": 5, "dashboard": 2}
+feature_registry:                       # list of feature entries
+  - view: "<ViewOrComponentName>"
+    pattern: "<one of 6 enum values: scan-loop | query-display | settings-rw | action-executor | orchestrator | dashboard>"
+    summary: "<≤80 char one-line description — what this feature does>"
 ```
 
-### `## feature-flow-detector (per-pattern diagram hints)`
+#### Forbidden in YAML stream
+
+| Legacy field | Where it goes now |
+| ---- | ---- |
+| `patterns` (singular alias of `pattern_distribution`) | Use `pattern_distribution` (canonical name) |
+| `feature_registry[].description` (multi-line prose) | Truncate to `summary` (≤80 chars). Full description → Markdown Content if needed. |
+| `note` (top-level prose blob) | Markdown Content → `.claude/docs/reference-feature-flows-<root>.md` |
+| `new_features_since_last_doc` | Top-level `drift.feature_flows` (handled by orchestrator) |
+| `features` (legacy field name) | Use `feature_registry` (canonical) |
+| `patterns_detected` (legacy) | Use `pattern_distribution` |
+| Per-feature `data_sources`, `props_down`, `callbacks_up`, `state_shape`, `notes` | These are NARRATIVE — emit only on Markdown Content stream if needed for sequence-diagram generation |
+
+### Stream 2 — Markdown Content
+
+```markdown
+## Markdown Content
+
+### → `.claude/sequences/features/<pattern>.mmd` (Mermaid sequence diagram)
+
+One Mermaid `sequenceDiagram` per unique pattern in `pattern_distribution`. Use actual participant names from the codebase (real component names, service names, store names — not generic "Component", "Service"). Show canonical 6–12-step flow. Add `Note over` with feature names exhibiting this pattern.
+
+(One subsection per pattern with features detected — emit only patterns with non-zero count.)
+
+### → `.claude/docs/reference-feature-flows-<root>.md` (NARRATIVE file, optional)
+
+(Emit only if there's project-context narrative worth surfacing — placeholder/scaffold state, future planned patterns, edge cases.)
+
+#### Notes
+
+(prose paragraph about feature-flow state — e.g. "All N views are scaffold/placeholder state; no lifecycle hooks implemented yet. Route structure indicates scan-loop, settings-rw, and query-display patterns are planned.")
+```
+
+### Cross-references
+
+`pattern_distribution` map values reference canonical patterns from the 6-enum taxonomy (above in Pattern taxonomy section). Patterns NOT in this 6-enum are forbidden in YAML.
+
+### `## feature-flow-detector (per-pattern diagram hints) — DEPRECATED`
 
 One Mermaid `sequenceDiagram` subsection per unique pattern in `diagram_groups`. Use actual participant names from the codebase (the real component names, service names, store names — not generic "Component", "Service"). Show the canonical 6–12-step flow for that pattern. Add a `Note over` with the feature names that exhibit this pattern.
 

@@ -139,25 +139,76 @@ Pick the one that is MOST representative of how the app works — not the simple
 
 If multiple patterns coexist (e.g., TanStack Query for data reads + Redux for client-only state), diagram the TanStack Query flow — server-state is usually the dominant concern.
 
-## Output Format
+## Output Format — TWO STREAMS
+
+> **Schema 1.3 contract** — see [`reference-frontend-analysis-schema.md`](../docs/reference-frontend-analysis-schema.md#block-6--data_flow). Conform to canonical field names + two-stream protocol.
+
+### Stream 1 — Structured YAML
 
 ```markdown
 ## Summary Row
 
 ```yaml
 frontend_root: <absolute path>
-state_containers: [<list>]
-data_fetching: <primary>
-data_fetching_all: [<all detected>]
-authentication: <primary or "none">
-realtime: <primary or "none">
-forms: <primary or "native">
-validation: <primary or "none">
-persistence: [<localStorage | redux-persist | indexeddb | service-worker | none>]
-primary_flow_diagrammed: <brief name of the chosen flow>
+relative: <project_root-relative path>
+
+# State + sharing — REQUIRED
+state_containers: [<string>]                   # list of detected state container names, [] if none
+cross_view_sharing: <"context" | "redux-store" | "url-state" | "local-only" | "global-singleton" | "none">
+
+# Data fetching — REQUIRED
+data_fetching_pattern: <"tanstack-query" | "rtk-query" | "swr" | "raw-fetch" | "axios-direct" | "trpc" | "graphql-client" | "none">
+caching: <"query-cache" | "swr-cache" | "manual" | "browser-cache" | "none">  # canonical (was 'caching_strategy' in legacy)
+
+# Protocol — REQUIRED
+api_style: <"rest" | "graphql" | "rpc" | "trpc" | "websocket" | "mixed" | "none">
+async_protocol: <"http" | "websocket" | "sse" | "polling" | "none">
+has_http: <bool>
+has_websocket: <bool>                          # canonical (was 'websocket' alias in PC — drop alias)
+realtime: <"none" | "polling" | "websocket" | "sse" | "long-polling">
+
+# Auth + forms — REQUIRED
+auth_flow: <"oauth" | "jwt" | "session" | "basic" | "custom" | "none">
+form_library: <"react-hook-form" | "formik" | "native" | "none">
+
+# Patterns — REQUIRED
+primary_patterns: [<string>]                   # list of detected dataflow patterns, e.g. ["fetch-on-mount", "subscribe-on-mount"]
 ```
 
-## frontend-data-flow.mmd
+#### Forbidden in YAML stream
+
+| Legacy field | Where it goes now |
+| ---- | ---- |
+| `body_markdown` (prose blob) | Markdown Content → `.claude/docs/reference-data-flow-<root>.md` |
+| `mermaid_diagram` (full Mermaid source) | DROP — full diagram lives in `.claude/sequences/frontend-data-flow-<root>.mmd`, no need for JSON duplication |
+| `caching_strategy` | Rename to `caching` (canonical) |
+| `websocket` (alias) | Use `has_websocket` (canonical) |
+| `data_fetching_all` (list of all detected) | Use single `data_fetching_pattern` (dominant) — list belongs in narrative |
+| `data_fetching` (legacy primary scalar) | Rename to `data_fetching_pattern` |
+| `authentication` (legacy) | Rename to `auth_flow` |
+| `forms` (legacy) | Rename to `form_library` |
+| `validation`, `persistence`, `primary_flow_diagrammed` | NARRATIVE — Markdown Content stream |
+| `changed_since_last_doc` | Top-level `drift.data_flow` |
+
+### Stream 2 — Markdown Content
+
+```markdown
+## Markdown Content
+
+### → `.claude/sequences/frontend-data-flow-<root>.mmd` (Mermaid diagram file)
+
+(Full Mermaid sequence diagram for the primary data flow. See template below.)
+
+### → `.claude/docs/reference-data-flow-<root>.md` (NARRATIVE file, optional)
+
+(Emit only if there's project-context narrative worth surfacing — auth flow details, persistence strategy, validation library specifics, multi-flow context.)
+
+#### Notes
+
+(prose paragraph if needed)
+```
+
+## frontend-data-flow.mmd (Mermaid template)
 
 ---
 title: "<frontend_relative> — Data flow: <flow name>"

@@ -142,25 +142,88 @@ Cite the specific base-class file in your output so the orchestrator can cross-l
 
 Keep focus: **structural rules for a single component file that the framework (known or custom) dictates**.
 
-## Output Format
+## Output Format — TWO STREAMS
+
+> **Schema 1.3 contract** — see [`reference-frontend-analysis-schema.md`](../docs/reference-frontend-analysis-schema.md#block-7--framework_idioms). Conform to canonical field names + two-stream protocol.
+>
+> M11 T2.5: adopted canonical shape inspired by PC project's output (`anti_patterns` / `mandatory_patterns` / `optional_patterns` arrays as RULES content). Drop `body_markdown`, rename `framework_name` / `framework_classification` / `confidence`.
+
+### Stream 1 — Structured YAML
 
 ```markdown
 ## Summary Row
 
 ```yaml
 frontend_root: <absolute path>
-framework_classification: industry | custom | vanilla
-framework_name: <next.js | vue3 | sciter-asset-component | custom-project-x | vanilla>
-framework_version: <version when known; empty for custom>
-base_class_or_factory: <file:line reference when custom, empty for industry>
-key_patterns:
-  - <short name of pattern 1 — e.g., "LOG_CALL on every method">
-  - <short name of pattern 2 — e.g., "kebab-case signal names in constructor">
-  - <short name 3>
-idiom_count: <integer — how many prescriptive rules extracted>
+relative: <project_root-relative path>
+
+# Framework identity — REQUIRED
+base_framework: <string>                          # canonical (was 'framework_name' in PC)
+                                                  # e.g. "React 19", "Sciter Reactor", "Vue 3 Composition API", "custom-project-x"
+framework_type: <"industry-standard" | "custom-in-house" | "embedded-runtime" | "hybrid">
+                                                  # canonical (was 'framework_classification')
+classification_confidence: <"high" | "medium" | "low">
+                                                  # canonical (was 'confidence' in PC)
+base_classes: [<string>]                          # detected base class names; [] if functional/vanilla
+                                                  # e.g. ["Element", "Reactor"] for Sciter; "React.Component" for class React
+patterns_found: [<string>]                        # canonical pattern enum names detected
+                                                  # e.g. ["hooks", "class-components", "render-props"]
+canonical_skeleton_source: <relative path>        # representative component for this framework idiom
 ```
 
-## Framework Idioms
+#### Forbidden in YAML stream
+
+| Legacy field | Where it goes now |
+| ---- | ---- |
+| `framework_name` | Rename to `base_framework` (canonical) |
+| `framework_classification` | Rename to `framework_type` (canonical) |
+| `confidence` (PC) | Rename to `classification_confidence` (canonical) |
+| `body_markdown` (prose blob) | Markdown Content → `.claude/docs/reference-framework-idioms-<root>.md` |
+| `anti_patterns: [<list>]` (PC) | **RULES** — Markdown Content → `.claude/rules/frontend-anti-patterns-<root>.md` |
+| `mandatory_patterns: [<list>]` (PC) | **RULES** — Markdown Content → `.claude/rules/frontend-components-<root>.md` |
+| `optional_patterns: [<list>]` (PC) | **RULES** — Markdown Content → `.claude/rules/frontend-components-<root>.md` |
+| `base_class_decision_rules: [<list>]` (Sc-only) | **RULES** — Markdown Content → `.claude/rules/frontend-components-<root>.md` |
+| `source_files_scanned: [<list>]` (PC) | Either drop (scan provenance) or append to `generated.scan_files_scanned` (top-level) |
+| `key_patterns: [<list>]` (legacy) | Use `patterns_found` (canonical) |
+| `idiom_count: <int>` (legacy) | Drop — derivable from `len(patterns_found)` |
+| `new_patterns_vs_docs` | Top-level `drift.framework_idioms` |
+
+### Stream 2 — Markdown Content
+
+```markdown
+## Markdown Content
+
+### → `.claude/rules/frontend-components-<root>.md` (RULES file — extends, doesn't replace)
+
+(Bulleted prescriptive rules — MUST/MAY rules for new components in this codebase. These get APPENDED to the existing frontend-components rules from component-inventory.)
+
+#### Mandatory patterns
+
+- Every component MUST extend `Element` and declare `styleset={__DIR__ + "Name.css#Name"}` on root
+- Every state mutation in a handler MUST be followed by `this.componentUpdate()` before side effects
+- (other mandatory observed patterns)
+
+#### Optional / situational patterns
+
+- For components with parametric variants, consider `@mixin action_button($map)`-style approach
+- (other optional patterns)
+
+### → `.claude/rules/frontend-anti-patterns-<root>.md` (RULES — do NOT do)
+
+(Bulleted DO NOT patterns observed in legacy code or documented as forbidden.)
+
+#### Anti-patterns
+
+- Do NOT use `font:` shorthand with `var()` — silently ignored in Sciter
+- Do NOT mutate `this.<field>` without `componentUpdate()` — Reactor won't re-render
+- (other anti-patterns)
+
+### → `.claude/docs/reference-framework-idioms-<root>.md` (NARRATIVE file)
+
+(Prose paragraph explaining the framework's overall philosophy, key idioms, and how this codebase customizes it. ~1-2 paragraphs.)
+```
+
+## Framework Idioms (legacy template — DEPRECATED)
 
 <If framework_classification == "vanilla": write SKIP and omit everything below>
 

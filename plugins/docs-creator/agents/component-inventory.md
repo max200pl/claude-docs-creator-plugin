@@ -106,34 +106,103 @@ If `icons/` folder exists OR many SVG files in components — note convention. O
 
 Keep scans narrow. Target ~15-30 minutes of subagent time per frontend. Sample, don't enumerate.
 
-## Output Format
+## Output Format — TWO STREAMS
+
+> **Schema 1.3 contract** — see [`reference-frontend-analysis-schema.md`](../docs/reference-frontend-analysis-schema.md#block-5--component_inventory). Conform to canonical field names + two-stream protocol.
+>
+> M11 T2.6: severe drift between projects in legacy schemas. Canonical fields enforced here. Drop duplicate `naming_convention` (singular). Rename `total_components_found` / `canonical_skeleton_file` / `component_count_total` to canonical.
+
+### Stream 1 — Structured YAML
 
 ```markdown
 ## Summary Row
 
 ```yaml
 frontend_root: <absolute path>
-components_dir_primary: <relative path, e.g., "src/components">
-component_count_total: <approximate integer — count of .tsx/.vue/.svelte files under components dirs>
-primitives_count: <integer>
-layouts_count: <integer>
-features_count: <integer listed, not total>
-pages_count: <integer>
-providers_count: <integer>
-naming_convention: PascalCase-file | kebab-case-file | snake_case-file | mixed
-naming_conventions:
-  component_file: PascalCase | kebab-case | snake_case | mixed
-  css_file: PascalCase | kebab-case | snake_case | matches-component | n/a
-  class_name: PascalCase | camelCase | BEM | n/a
-  directory: PascalCase | kebab-case | snake_case | matches-component
-folder_structure: single-file | folder-with-index | mixed
-ui_library_integration: direct | wrapped | shadcn-copy | mixed | none
-storybook_present: <boolean>
-storybook_coverage_pct: <integer 0-100 or n/a>
-test_colocation: colocated | __tests__ | no-tests | mixed
-primary_prop_type: interface | type | mixed
-ref_forwarding: always | sometimes | never
+relative: <project_root-relative path>
+
+# Counts — REQUIRED
+total_components: <integer>                  # canonical (was 'total_components_found' / 'component_count_total')
+primitives_count: <integer>                  # leaf components count
+pages_count: <integer>                       # route-level views (0 if no routing)
+widgets_count: <integer>                     # feature/widget components (0 if not applicable)
+layouts_count: <integer>                     # layout components (0 if not applicable)
+figma_code_connect_count: <integer>          # 0 if has_figma_code_connect == false
+
+# Structure — REQUIRED
+canonical_skeleton: <relative path>          # canonical (was 'canonical_skeleton_file')
+                                             # path to a representative component used as a template
+folder_structure: <"co-located" | "by-type" | "flat" | "mixed">
+                                             # how components are organized in the file tree
+
+# Naming — REQUIRED
+naming_conventions:                          # full object (singular `naming_convention` dropped — was lossy summary)
+  component_file: <"PascalCase" | "kebab-case" | "snake_case" | "matches-component">
+  css_file: <"PascalCase" | "kebab-case" | "snake_case" | "matches-component" | "n/a">
+  class_name: <"PascalCase" | "camelCase" | "BEM" | "n/a">
+  directory: <"PascalCase" | "kebab-case" | "snake_case" | "matches-component">
+
+# Capability flags — REQUIRED
+has_storybook: <bool>
+has_figma_code_connect: <bool>
+has_preview_files: <bool>                    # e.g. Sciter `.preview.js` files
 ```
+
+#### Forbidden in YAML stream
+
+| Legacy field | Where it goes now |
+| ---- | ---- |
+| `naming_convention` (singular) | **DROP** — duplicate of `naming_conventions.component_file` (lossy summary string) |
+| `total_components_found` | Rename to `total_components` |
+| `component_count_total` | Rename to `total_components` |
+| `canonical_skeleton_file` | Rename to `canonical_skeleton` |
+| `components_dir_primary` | Drop — generated from `canonical_skeleton` |
+| `features_count` (legacy) | Rename to `widgets_count` (if matches widget concept) or drop if generic |
+| `providers_count` | Drop (low-signal field) |
+| `ui_library`, `ui_library_integration` | **DROP** — duplicate of `tech_stack.ui_library` |
+| `storybook_present`, `storybook_coverage_pct` | Replaced by `has_storybook` (bool) — drop coverage_pct (low-signal) |
+| `test_colocation`, `primary_prop_type`, `ref_forwarding` | Move to RULES file (Markdown Content) as bulleted observations |
+| `feature_areas`, `feature_views`, `leaf_components`, `sub_views`, `shared_primitives_source` (GB extras) | NARRATIVE — Markdown Content → `.claude/docs/reference-component-inventory-<root>.md` |
+| `shared_components`, `view_components` (PC narrative lists) | NARRATIVE — Markdown Content |
+| `components` (Sc-only enum) | NARRATIVE — Markdown Content |
+| `new_since_last_doc` | Top-level `drift.component_inventory` |
+
+### Stream 2 — Markdown Content
+
+```markdown
+## Markdown Content
+
+### → `.claude/rules/frontend-components-<root>.md` (RULES file)
+
+(Bulleted prescriptive rules — how to structure new components, observed conventions, what tests expect.)
+
+#### File structure conventions
+
+- Components live in `<components_dir>/<ComponentName>/<ComponentName>.{tsx,scss,test}`
+- Each component is a folder (folder-per-component pattern) OR single-file (file-per-component) — match this project's convention
+- Tests are co-located (`.test.tsx` next to component) OR in `__tests__/` (match observed)
+
+#### Prop conventions
+
+- Use `interface` not `type` for prop definitions (or whatever this project observes)
+- All onX callbacks use type `(value: T) => void` form
+- Ref forwarding required for primitives that wrap native HTML
+
+#### (other observed RULES — varies per project)
+
+### → `.claude/docs/reference-component-inventory-<root>.md` (NARRATIVE file)
+
+(Table of notable components + descriptions for human reference. Per-component summary, file paths, prop shapes. The agent-facing JSON has only counts; this doc has the catalog.)
+
+#### Notable components
+
+| Name | Path | Description |
+| ---- | ---- | ---- |
+| Button | src/components/Button/Button.tsx | Generic CTA button with 3 variants |
+| ... | ... | ... |
+```
+
+### Rule file frontmatter (orchestrator prepends — do NOT include in agent output)
 
 **Rule file frontmatter (the orchestrator prepends this block — do NOT include it in your output):**
 
