@@ -331,10 +331,13 @@ After the YAML, emit a `## Markdown Content` section. Orchestrators (`create-fro
 
 1. Find `## Markdown Content` H2 in scanner output
 2. For each `### → <path>` H3 inside it, extract content between this H3 and the next `### →` (or the end of `## Markdown Content`)
-3. Write the extracted content (without the `### →` routing header) into `<path>` (substituting `<root>` with per-frontend suffix per file-naming rules)
-4. Skip absent subsections — orchestrator must NOT fabricate sections the scanner didn't emit
+3. Resolve `<root>` placeholder in `<path>` per canonical file-naming convention (see [`reference-frontend-analysis-schema.md` § File Naming Convention](../docs/reference-frontend-analysis-schema.md#file-naming-convention-canonical)):
+   - **Single-root project** (`frontend_roots.length == 1`): drop `<root>` placeholder + preceding `-` → `reference-icon-connection-<root>.md` becomes `reference-icon-connection.md`
+   - **Multi-root project** (`frontend_roots.length > 1`): substitute `<root>` with the root-slug AND **drop** the `reference-` prefix in `.claude/docs/` paths → `reference-icon-connection-<root>.md` becomes `icon-connection-<root-slug>.md` (e.g. `icon-connection-desktop.md`)
+4. Write the extracted content (without the `### →` routing header) to the resolved path
+5. Skip absent subsections — orchestrator must NOT fabricate sections the scanner didn't emit
 
-Each `### →` heading routes its content to ONE file. Orchestrators MUST emit a frontmatter block (per the relevant doc-format rule) before the body.
+Each `### →` heading routes its content to ONE file. Orchestrators MUST emit a frontmatter block (per the relevant doc-format rule) before the body, AND substitute cross-references in the body to match canonical naming for THIS project's root count.
 
 ## frontend-design-system.md
 

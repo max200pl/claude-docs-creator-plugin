@@ -395,6 +395,53 @@ Projects with schema 1.2 JSON gracefully degrade — generators tolerant of miss
 
 **Forced rebuild:** `/docs-creator:update-frontend-docs --rebuild-schema` re-runs scan with 1.3-emitting subagents. Required for downstream consumers that don't implement alias fallback.
 
+## File Naming Convention (CANONICAL)
+
+> Resolves the multi-root naming ambiguity surfaced in M11 T10. Single source of truth — every skill that materializes per-root artefacts MUST follow this.
+
+### Single-root project (`frontend_roots.length == 1`)
+
+All shipped artefacts use the `reference-` prefix in `.claude/docs/`:
+
+| Artefact | Filename |
+| ---- | ---- |
+| Component-creation template | `.claude/docs/reference-component-creation-template.md` |
+| Architecture | `.claude/docs/reference-architecture-frontend.md` |
+| Component inventory | `.claude/docs/reference-component-inventory.md` |
+| Icon connection | `.claude/docs/reference-icon-connection.md` |
+| Styling flow | `.claude/docs/reference-styling-flow.md` |
+| Design-system rules | `.claude/rules/frontend-design-system.md` |
+| Frontend-components rules | `.claude/rules/frontend-components.md` |
+
+### Multi-root project (`frontend_roots.length > 1`)
+
+The `reference-` prefix is **DROPPED** in `.claude/docs/`, and a `-<root-slug>` suffix is appended. `<root-slug>` is the last directory of `frontend_roots[i].relative` (e.g. `projects/desktop/ui` → `desktop`; `res` → `res`).
+
+| Artefact | Single-root filename | Multi-root filename (per root) |
+| ---- | ---- | ---- |
+| Component-creation template | `reference-component-creation-template.md` | `component-creation-template-<root>.md` |
+| Architecture | `reference-architecture-frontend.md` | `architecture-frontend-<root>.md` |
+| Component inventory | `reference-component-inventory.md` | `component-inventory-<root>.md` |
+| Icon connection | `reference-icon-connection.md` | `icon-connection-<root>.md` |
+| Styling flow | `reference-styling-flow.md` | `styling-flow-<root>.md` |
+| Design-system rules | `frontend-design-system.md` | `frontend-design-system-<root>.md` |
+| Frontend-components rules | `frontend-components.md` | `frontend-components-<root>.md` |
+
+**Rationale:** users with monorepo / multi-app projects don't want every doc to read `reference-...-multi-root-app.md` (noisy). Dropping `reference-` keeps multi-root filenames short. `.claude/rules/` files don't have the prefix to begin with, so multi-root just adds the suffix.
+
+### Substitution rule for scanner output
+
+Scanner subagents emit `### → <path>` H3 routing headers with `<root>` placeholder in paths (e.g. `### → .claude/docs/reference-icon-connection-<root>.md`). Orchestrators (`create-frontend-docs`, `update-frontend-docs`) MUST apply this substitution:
+
+1. If single-root project: drop the `<root>` placeholder and any preceding `-`, keep `reference-` prefix → `reference-icon-connection.md`
+2. If multi-root project: substitute `<root>` with the root-slug AND drop the `reference-` prefix in `.claude/docs/` paths → `icon-connection-<root-slug>.md`
+
+For `.claude/rules/` paths: substitute `<root>` with root-slug only (no prefix dropping needed); single-root drops the placeholder.
+
+### Cross-reference rule
+
+When one shipped artefact links to another (e.g. `reference-icon-connection.md` mentions `reference-component-creation-template.md` in "See also"), the link MUST resolve to the correct filename for the target project's root count. Orchestrators apply substitution to BOTH the target file path AND any cross-refs the artefact body contains.
+
 ## Subagent Output Protocol
 
 Each scanner subagent emits **two streams** in a single scan pass:

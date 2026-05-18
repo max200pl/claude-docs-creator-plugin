@@ -152,7 +152,13 @@ Based on `<area>`:
 - `feature-flows` → regenerate `.claude/sequences/features/*.mmd` from `feature_flows.diagram_groups`; ALSO update the `## Feature data flows` section in `reference-component-creation-template.md`
 - `template` → regenerate `reference-component-creation-template.md` from current JSON (no subagent ran)
 
-Use the same file-naming rules as `/create-frontend-docs` (suffix per frontend when N > 1).
+Use the canonical file-naming rules per [`reference-frontend-analysis-schema.md` § File Naming Convention](../../docs/reference-frontend-analysis-schema.md#file-naming-convention-canonical) — same as `/create-frontend-docs`:
+
+- Single-root (`frontend_roots.length == 1`): keep `reference-` prefix in `.claude/docs/` filenames.
+- Multi-root (`frontend_roots.length > 1`): **DROP** `reference-` prefix in `.claude/docs/` AND append `-<root-slug>` suffix. Examples: `icon-connection-desktop.md`, `styling-flow-installer.md`, NOT `reference-icon-connection-desktop.md`.
+- `.claude/rules/` filenames: append `-<root-slug>` suffix only (no prefix to drop).
+
+When updating per-root files, also rewrite cross-references in artefact bodies to match the target's actual filename (substitute both the file path AND any "See also" links).
 
 ### Phase: Update CLAUDE.md (conditional)
 

@@ -128,10 +128,30 @@ If a JSON section is `null` or SKIP (subagent returned SKIP during analysis), th
 
 ### Phase: Write artefacts
 
-File-naming:
+**File-naming convention** — canonical rule per [`reference-frontend-analysis-schema.md` § File Naming Convention](../../docs/reference-frontend-analysis-schema.md#file-naming-convention-canonical):
 
-- `frontend_roots.length == 1` → plain filenames (`reference-component-creation-template.md`, `frontend-design-system.md`, etc.)
-- `frontend_roots.length > 1` → suffix `-<root-slug>` derived from `frontend_roots[i].relative` basename
+| `frontend_roots.length` | `.claude/docs/` filenames | `.claude/rules/` filenames |
+| ---- | ---- | ---- |
+| **1** (single-root) | `reference-<name>.md` (KEEP `reference-` prefix) | `<name>.md` (no prefix; standard) |
+| **> 1** (multi-root) | `<name>-<root-slug>.md` (**DROP** `reference-` prefix; append `-<root-slug>` suffix) | `<name>-<root-slug>.md` (just suffix) |
+
+`<root-slug>` is the last directory component of `frontend_roots[i].relative` (e.g. `projects/desktop/ui` → `desktop`; `res` → `res`; `apps/web` → `web`).
+
+**Examples:**
+
+| Artefact | Single-root | Multi-root (3 roots: desktop, notifier, installer) |
+| ---- | ---- | ---- |
+| `.claude/docs/reference-component-creation-template.md` | as-is | `component-creation-template-desktop.md`, `component-creation-template-notifier.md`, `component-creation-template-installer.md` |
+| `.claude/docs/reference-architecture-frontend.md` | as-is | `architecture-frontend-desktop.md`, ...notifier, ...installer |
+| `.claude/docs/reference-component-inventory.md` | as-is | `component-inventory-desktop.md`, ... |
+| `.claude/docs/reference-icon-connection.md` | as-is | `icon-connection-desktop.md`, ... |
+| `.claude/docs/reference-styling-flow.md` | as-is | `styling-flow-desktop.md`, ... |
+| `.claude/rules/frontend-design-system.md` | as-is | `frontend-design-system-desktop.md`, ... |
+| `.claude/rules/frontend-components.md` | as-is | `frontend-components-desktop.md`, ... |
+
+**Rationale for prefix-drop in multi-root:** noisy filenames like `reference-component-creation-template-desktop.md` are visually heavy; dropping `reference-` keeps multi-root filenames short and signals "this is a per-root variant". This matches user-intended convention observed in pc_cleaner and similar multi-frontend projects.
+
+**Cross-reference substitution:** when an artefact body contains a link to another artefact (e.g. "See `reference-component-creation-template.md`"), substitute the link target with the correct filename for THIS project's root count + root-slug.
 
 **Paths-scoping for generated rules — exact frontmatter blocks to prepend:**
 
