@@ -116,12 +116,35 @@ Write JSON back atomically (temp-write + rename).
 
 Based on `<area>`:
 
-- `design-system` → regenerate THREE artefacts from the `design_system` block:
-  1. `.claude/rules/frontend-design-system.md` (+ per-root suffix) — from `design_system` core fields. New frontmatter `paths:` scoping. Include `token_file:` and `typography_file:` in frontmatter (values from `design_system.token_file` / `.typography_file`, or `"none"` if absent).
-  2. `.claude/docs/reference-icon-connection.md` (+ per-root suffix) — from `design_system.icon_pattern`. Follow `rules/icon-connection-doc-format.md` shape. Always written when `icon_pattern` exists (which is required per schema 1.2+).
-  3. `.claude/docs/reference-styling-flow.md` (+ per-root suffix) — from `design_system.styling_patterns`. Follow `rules/styling-flow-doc-format.md` shape with per-preprocessor dialect templating. Always written when `styling_patterns` exists (required per schema 1.3+).
+- `design-system` → regenerate THREE artefacts. **TWO-STREAM scanner output protocol** (schema 1.3+):
+
+  **Sources from scanner output** (see `agents/design-system-scanner.md` Output Format):
+  - `## Summary Row` (slim YAML) — driver fields, written to `frontend-analysis.json` (handled by Phase: Update JSON above)
+  - `## frontend-design-system.md` (legacy markdown body) — main rules-file body
+  - `## Markdown Content` (tail-narrative subsections) — routed by `### → <path>` H3 headers
+
+  **Regeneration steps:**
+
+  1. **`.claude/rules/frontend-design-system.md`** (+ per-root suffix) — body from scanner's `## frontend-design-system.md` section. Prepend frontmatter (`description`, `paths:` scoping; include `token_file:` and `typography_file:` from `design_system.token_file` / `.typography_file` in JSON, or `"none"` if absent).
+
+  2. **`.claude/docs/reference-icon-connection.md`** (+ per-root suffix) — body sourced from BOTH:
+     - **JSON driver fields:** `design_system.icon_pattern.*` (connection, color_change, library_name, path_convention, wrapper_component) — render per `rules/icon-connection-doc-format.md` shape
+     - **Scanner Markdown Content tail:** parse scanner's `## Markdown Content` → find `### → .claude/docs/reference-icon-connection-<root>.md` H3 → extract content between this H3 and the next `### →` (or end of `## Markdown Content`). This content contains `#### Icon examples` table + `#### Notes` prose. Append to the body after JSON-driven sections.
+     - Always written when `icon_pattern` exists (required per schema 1.2+). If scanner's Markdown Content subsection is absent, write only the JSON-driven body (omit Examples/Notes sections — do NOT fabricate).
+
+  3. **`.claude/docs/reference-styling-flow.md`** (+ per-root suffix) — body sourced from BOTH:
+     - **JSON driver fields:** `design_system.styling_patterns.*` (preprocessor, bundler, build_mode, all 4 stepper fields) — render per `rules/styling-flow-doc-format.md` shape with per-preprocessor dialect templating
+     - **Scanner Markdown Content tail:** parse `### → .claude/docs/reference-styling-flow-<root>.md` H3 → extract `#### Notes` content. Append after JSON-driven stepper sections.
+     - Always written when `styling_patterns` exists (required per schema 1.3+).
 
   **Parity invariant:** `/docs-creator:create-frontend-docs` writes all three artefacts on a fresh run; `/docs-creator:update-frontend-docs design-system` MUST regenerate the same three. Prior to schema 1.3, the styling-flow artefact was skipped on update — this is the parity fix.
+
+  **Markdown Content parsing rules** (apply to artefacts #2 and #3):
+  - Find `## Markdown Content` H2 in scanner output
+  - For each `### → <path>` H3 inside it, extract the body between this H3 and the next `### →` (or end of `## Markdown Content`)
+  - Substitute `<root>` in the target path with per-frontend suffix (per file-naming rules above)
+  - Write the extracted content (without the routing `### →` H3) to the target file, AFTER the frontmatter and JSON-driven sections
+  - If scanner did not emit a particular `### →` subsection, do NOT fabricate that content — omit those sections from the artefact
 - `components` → regenerate `.claude/rules/frontend-components.md` + `.claude/docs/reference-component-inventory.md` from `component_inventory`; prepend `naming_conventions:` frontmatter block to `reference-component-inventory.md`; **also always write `.claude/state/component-registry.json`** (no markdown mirror): merge if exists (preserve `figma_node_id` records, overwrite `status: "unverified"`); create fresh if not exists
 - `data-flow` → regenerate `.claude/sequences/frontend-data-flow.mmd` from `data_flow.primary_flow_mermaid`
 - `architecture` → regenerate `.claude/docs/reference-architecture-frontend.md` from `tech_stack` + `architecture`; ALSO regenerate `reference-component-creation-template.md` (because styling_model / class_naming in Stack section changed)

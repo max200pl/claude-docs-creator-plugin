@@ -297,57 +297,14 @@ These were emitted in legacy schemas — now they belong in the markdown stream:
 | `styling_patterns.notes` (prose) | Markdown stream → `## Notes` section of `.claude/docs/reference-styling-flow-<root>.md` |
 | `changes_vs_docs` | Top-level `drift.design_system` (handled by orchestrator, not this scanner) |
 
-### Stream 2 — Markdown Content (catalog + rules + narrative)
+### Stream 2 — Markdown Content (subsection routing for tail artefacts)
 
-After the YAML, emit a `## Markdown Content` section with the full catalog content. `create-frontend-docs` Phase: Assemble routes these subsections to the correct artefact files.
+After the YAML, emit a `## Markdown Content` section. Orchestrators (`create-frontend-docs`, `update-frontend-docs`) route each `### →` subsection to its target artefact file.
+
+> **Scope of this stream:** ONLY the artefacts whose tail-narrative (Notes, Examples) is no longer carried in slim JSON — `reference-icon-connection-<root>.md` and `reference-styling-flow-<root>.md`. The main rules file (`frontend-design-system-<root>.md`) is still produced via the legacy `## frontend-design-system.md` section below — orchestrators read that as before. Color tables, borders, shadows, z-index live in the legacy section.
 
 ```markdown
 ## Markdown Content
-
-### → `.claude/rules/frontend-design-system-<root>.md` (RULES file)
-
-#### Color Palette
-
-##### Brand
-
-| Name | Value | Usage |
-| ---- | ---- | ---- |
-| <variable> | <hex> | <usage description> |
-
-(... 13 rows for pc_cleaner desktop, etc.)
-
-##### Semantic
-
-| Name | Value | Usage |
-| ---- | ---- | ---- |
-| <variable> | <hex> | <usage description> |
-
-##### Neutral (N named steps)
-
-| Name | Value |
-| ---- | ---- |
-| <variable> | <hex> |
-
-##### Brand Alpha Variants / Button Color Maps / etc.
-
-(Project-specific sub-sections — emit only if detected)
-
-#### Borders and Radii
-
-| Context | Radius | Notes |
-| ---- | ---- | ---- |
-
-#### Shadows
-
-(prose or table — only if detected)
-
-#### Z-index
-
-(table — only if detected)
-
-#### Notes
-
-(prose paragraph about design-system quirks, build-injected variables, latent bugs, etc.)
 
 ### → `.claude/docs/reference-icon-connection-<root>.md` (NARRATIVE file)
 
@@ -357,20 +314,27 @@ After the YAML, emit a `## Markdown Content` section with the full catalog conte
 | ---- | ---- | ---- |
 | <path> | <enum> | <enum> |
 
-(up to 3 representative examples)
+(up to 3 representative examples, omit section if no examples detected)
 
 #### Notes
 
-(prose — conflicts, non-recommended patterns, divergence vs project rules docs)
+(prose paragraph — conflicts, non-canonical URL schemes, divergence vs project rules docs; omit section if no notes)
 
 ### → `.claude/docs/reference-styling-flow-<root>.md` (NARRATIVE file)
 
 #### Notes
 
-(prose — preprocessor-specific observations, edge cases, build-injection caveats, etc.)
+(prose paragraph — preprocessor-specific observations, edge cases, build-injection caveats, latent bugs; omit section if no notes)
 ```
 
-Each `### →` heading specifies which artefact `create-frontend-docs` writes the following subsections into. Order matters — `create-frontend-docs` reads top-down.
+**Parsing contract for orchestrators:**
+
+1. Find `## Markdown Content` H2 in scanner output
+2. For each `### → <path>` H3 inside it, extract content between this H3 and the next `### →` (or the end of `## Markdown Content`)
+3. Write the extracted content (without the `### →` routing header) into `<path>` (substituting `<root>` with per-frontend suffix per file-naming rules)
+4. Skip absent subsections — orchestrator must NOT fabricate sections the scanner didn't emit
+
+Each `### →` heading routes its content to ONE file. Orchestrators MUST emit a frontmatter block (per the relevant doc-format rule) before the body.
 
 ## frontend-design-system.md
 

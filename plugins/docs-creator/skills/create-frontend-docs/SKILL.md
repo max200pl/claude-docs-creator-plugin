@@ -235,7 +235,10 @@ Also ensure project `.gitignore` has exception: `!.claude/state/component-regist
 
 Materialize the icon connection standalone doc — the human-facing record of how icons work in this project. Always written when `design_system.icon_pattern` exists in JSON (i.e. always, since the field is required as of Phase 3.6).
 
-**Source:** `design_system.icon_pattern` block from `frontend-analysis.json`.
+**Sources (TWO-STREAM protocol since schema 1.3+):**
+
+- **JSON driver fields:** `design_system.icon_pattern.{connection, color_change, library_name, path_convention, wrapper_component}` from `frontend-analysis.json` — render per `rules/icon-connection-doc-format.md` body shape
+- **Scanner Markdown Content tail:** parse `design-system-scanner` output's `## Markdown Content` section → find `### → .claude/docs/reference-icon-connection-<root>.md` H3 → extract content between this H3 and the next `### →` (or end of `## Markdown Content`). This contains `#### Icon examples` table + `#### Notes` prose. Append AFTER JSON-driven sections.
 
 **Target:** `<project_root>/.claude/docs/reference-icon-connection.md`
 
@@ -243,9 +246,10 @@ Materialize the icon connection standalone doc — the human-facing record of ho
 
 **Conditional behavior:**
 
-- `icon_pattern.connection == null` AND `notes == "no icons detected"` → write a minimal doc with one section explaining "No icons detected in this project — when icons are added later, run `/docs-creator:update-frontend-docs design-system` to refresh." Do not fabricate examples.
+- `icon_pattern.connection == null` AND scanner Markdown Content subsection is absent → write a minimal doc with one section explaining "No icons detected in this project — when icons are added later, run `/docs-creator:update-frontend-docs design-system` to refresh." Do not fabricate examples.
 - `icon_pattern.wrapper_component.name == null` → omit the "Helper components" section content; render only `_No wrapper component — icons are used directly._`
-- `icon_pattern.notes` non-empty → include the "Conflicts / tech debt" section verbatim from `notes`; otherwise omit that section entirely.
+- Scanner emitted `#### Notes` inside the `### → reference-icon-connection` subsection → include the prose verbatim under the "Conflicts / tech debt" or "Notes" heading; otherwise omit that section entirely.
+- Scanner emitted `#### Icon examples` table → include it as the "Icon examples" section; otherwise omit.
 
 **Cross-references:** the generated doc MUST include a "See also" footer linking back to:
 - `@.claude/docs/reference-component-creation-template.md` (Icon usage patterns inline section)
@@ -257,7 +261,10 @@ Materialize the icon connection standalone doc — the human-facing record of ho
 
 Materialize the **project-specific styling flow** — the 4-step stepper (Topology / Scope / Naming / Ingredients) instantiated with project values (preprocessor, variable syntax, mixin syntax, etc.). Always written when `design_system.styling_patterns` exists in JSON (required as of Phase 3.9, schema v0.17.0+).
 
-**Source:** `design_system.styling_patterns` block from `frontend-analysis.json`.
+**Sources (TWO-STREAM protocol since schema 1.3+):**
+
+- **JSON driver fields:** `design_system.styling_patterns.*` (preprocessor, bundler, build_mode, all 4 stepper fields) from `frontend-analysis.json` — render per `rules/styling-flow-doc-format.md` body shape with per-preprocessor dialect templating
+- **Scanner Markdown Content tail:** parse `design-system-scanner` output's `## Markdown Content` section → find `### → .claude/docs/reference-styling-flow-<root>.md` H3 → extract `#### Notes` content. Append AFTER JSON-driven stepper sections.
 
 **Target:** `<project_root>/.claude/docs/reference-styling-flow.md`
 
