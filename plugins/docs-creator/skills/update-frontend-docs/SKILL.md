@@ -45,7 +45,31 @@ If the project needs a FULL refresh, run `/analyze-frontend` (to regenerate the 
 /update-frontend-docs framework-idioms       # refresh framework rules in template
 /update-frontend-docs template               # re-assemble template from current JSON (no subagent re-run)
 /update-frontend-docs <area> --all-frontends # apply to every frontend in JSON (default: prompt per frontend if N > 1)
+/update-frontend-docs --rebuild-schema       # M11 T7: forced full re-scan, migrates schema 1.2 → 1.3 (see Phase: Rebuild Schema below)
 ```
+
+## `--rebuild-schema` mode (M11 T7 migration path)
+
+> Single-command migration from schema 1.2 → 1.3. Re-runs ALL 7 Wave 2 subagents, writes JSON with `schema_version: "1.3"`, regenerates ALL `.md` artefacts using canonical naming + two-stream protocol.
+
+When to use:
+
+- Project's `frontend-analysis.json` has `schema_version: "1.2"` (or older)
+- Migrating after upgrading docs-creator past 0.19.0 (which shipped schema 1.3 alignment)
+- `validate-claude-docs` flagged drift between current JSON shape and canonical schema 1.3
+
+Effect:
+
+1. **Preflight detects schema mismatch** — if `schema_version != "1.3"`, prints upgrade summary + asks user to confirm `--rebuild-schema`
+2. **Re-invokes all 7 Wave 2 subagents** — `tech-stack-profiler`, `architecture-analyzer`, `design-system-scanner`, `component-inventory`, `data-flow-mapper`, `framework-idiom-extractor`, `feature-flow-detector`
+3. **Rewrites JSON entirely** — slim YAML from each subagent's Stream 1; `schema_version: "1.3"`; updated `generated.ts` + `plugin_version`
+4. **Regenerates ALL artefacts** — applies canonical multi-root naming convention; routes scanner's Markdown Content streams to per-area `.md` files
+5. **Updates root CLAUDE.md `### Frontend` subsection** — refreshes import paths to match canonical filenames
+
+Difference from regular run:
+
+- Regular `/update-frontend-docs <area>` re-runs ONE area's subagent + regenerates ITS artefact only
+- `--rebuild-schema` is a full forced re-scan; ignores `<area>` arg if both given (warns and proceeds with full rebuild)
 
 ## Interactive Wizard
 
@@ -73,8 +97,28 @@ If the project needs a FULL refresh, run `/analyze-frontend` (to regenerate the 
 Capture `START_TS`. Read `.claude/state/frontend-analysis.json`. Error cases:
 
 - JSON missing → stop with: "No frontend analysis found. Run `/analyze-frontend` first (and then `/create-frontend-docs` to produce initial artefacts)."
-- `schema_version` mismatch → stop with: "Analysis schema version mismatch. Re-run `/analyze-frontend` to regenerate."
+- `schema_version` < "1.3" → if `--rebuild-schema` flag set → proceed via Phase: Rebuild Schema below. If flag NOT set → warn: "JSON is at schema_version <X>; current toolkit emits schema 1.3. Per-area updates may produce mixed-state JSON. Recommended: run `/docs-creator:update-frontend-docs --rebuild-schema` for full migration. Continue with partial update anyway? [y/N]"
+- `schema_version` > "1.3" → stop: "JSON schema_version ahead of this plugin version. Upgrade plugin first."
 - `<area>` argument missing or not in the valid list → stop with the valid-area table.
+- `--rebuild-schema` AND `<area>` BOTH given → warn "—rebuild-schema overrides area filter; proceeding with full rebuild" → proceed to Phase: Rebuild Schema.
+
+### Phase: Rebuild Schema (M11 T7 migration mode)
+
+Triggered by `--rebuild-schema` flag (or auto-suggested on schema_version mismatch). Steps:
+
+1. **Re-invoke ALL 7 Wave 2 subagents** in parallel — same fan-out as `/analyze-frontend`. Provide each with current `frontend_root`, `stack_profile` (from JSON or fresh tech-stack-profiler), `entry_points`.
+2. **Parse subagent outputs** — each emits Stream 1 (slim YAML) + Stream 2 (Markdown Content with `### → <path>` routing).
+3. **Rewrite JSON entirely** — replace `frontend_roots[i]` per-block with fresh slim YAML from each subagent. Set:
+   - `schema_version: "1.3"`
+   - `generated.ts`: now()
+   - `generated.plugin_version`: current
+   - `generated.skill`: `update-frontend-docs`
+   - `generated.previous_refresh`: snapshot of prior `generated.ts` + `plugin_version` + `schema_version` (for drift T3 to use)
+4. **Regenerate ALL artefacts** — apply canonical naming convention (single-root vs multi-root prefix rules); route Markdown Content streams per scanner's `### → <path>` H3 routing. Skip artefacts where scanner returned SKIP.
+5. **Update root CLAUDE.md `### Frontend` subsection** — refresh `@`-imports + descriptions to match canonical filenames.
+6. **Final report** — list every file rewritten + flag any cross-refs the orchestrator could not auto-resolve (e.g. user-added rule references to legacy filenames).
+
+After this phase, skip the regular Re-invoke/Update JSON/Regenerate phases — full rebuild already covered them.
 
 Determine scope:
 
@@ -111,6 +155,36 @@ For `architecture`, update both `frontend_roots[i].tech_stack` (from fresh tech-
 Update `generated.ts` to current ISO timestamp. Leave `generated.only_filter` empty (this is an update, not a filtered analyze).
 
 Write JSON back atomically (temp-write + rename).
+
+### Phase: Compute drift (M11 T3)
+
+Before writing JSON, compute the top-level `drift` block per frontend root. This consolidates 6 previously-scattered drift signals (`architecture.structural_changes`, `design_system.changes_vs_docs`, `component_inventory.new_since_last_doc`, `data_flow.changed_since_last_doc`, `framework_idioms.new_patterns_vs_docs`, `feature_flows.new_features_since_last_doc`) into one structure.
+
+For each frontend root in scope:
+
+1. **Read previous block state** from JSON before overwriting (i.e. snapshot the BLOCK being refreshed: e.g. previous `design_system` block).
+2. **Diff against new block state** from this run's subagent output. Per-block diff rules:
+   - `architecture`: detect changes to `architecture_pattern`, `top_level_dirs`, `folder_boundary_style` → emit string descriptions
+   - `design_system`: detect new tokens (counts changed), new icon-pattern, new styling-patterns fields, mechanism changes → emit string descriptions
+   - `component_inventory`: detect new components (counter diff), naming-convention changes → emit string descriptions
+   - `data_flow`: detect new state containers, data-fetching pattern change, new auth flow → emit string descriptions
+   - `framework_idioms`: detect new patterns_found entries → emit string descriptions
+   - `feature_flows`: detect new feature_registry entries (pattern + view diff) → emit string descriptions
+3. **Populate `drift` block** on the per-root JSON:
+   ```yaml
+   drift:
+     since_ts: <prev generated.ts>
+     since_plugin_version: <prev generated.plugin_version>
+     architecture: [<change description strings>]    # [] if no change since prev scan
+     design_system: [...]
+     component_inventory: [...]
+     data_flow: [...]
+     framework_idioms: [...]
+     feature_flows: [...]
+   ```
+4. **First-scan exception** — if there is no previous JSON (fresh `/analyze-frontend` or no `generated.previous_refresh` snapshot), emit `drift` with `since_ts: ""`, `since_plugin_version: ""`, all arrays `[]`.
+
+`--rebuild-schema` mode populates `drift` based on the prior whole-block snapshot (one entry per renamed/dropped/added field per block) — useful as a migration changelog visible in the JSON itself.
 
 ### Phase: Regenerate artefact
 

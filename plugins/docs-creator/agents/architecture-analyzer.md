@@ -252,7 +252,7 @@ If the frontend is a trivially flat directory (e.g., a single `index.html` + 2 J
 
 ```yaml
 frontend_root: <path>
-organizing_principle: flat
+architecture_pattern: flat
 trivial: true
 reason: "minimal structure — no meaningful architecture to describe"
 ```

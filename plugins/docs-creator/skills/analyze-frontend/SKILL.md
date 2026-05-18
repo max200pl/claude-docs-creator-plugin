@@ -147,16 +147,25 @@ icon_pattern:                                 # NEW — required for Phase 3.6 i
   notes: <free-text — flags conflicts and non-recommended patterns>
 ```
 
-**`component_inventory` section** (from `component-inventory` Summary Row):
+**`component_inventory` section** (from `component-inventory` Summary Row, schema 1.3 canonical — see [`reference-frontend-analysis-schema.md` § Block 5](../../docs/reference-frontend-analysis-schema.md#block-5--component_inventory)):
 
 ```yaml
-naming_convention: <legacy single value>
-naming_conventions:          # NEW — required for component-creator Gap G
+total_components: <int>           # canonical (was 'total_components_found' in legacy)
+canonical_skeleton: <path>        # canonical (was 'canonical_skeleton_file' in legacy)
+primitives_count: <int>
+pages_count: <int>
+widgets_count: <int>
+layouts_count: <int>
+figma_code_connect_count: <int>
+folder_structure: <"co-located" | "by-type" | "flat" | "mixed">
+naming_conventions:               # full object — singular `naming_convention` was DROPPED in 1.3 as lossy duplicate
   component_file: <enum>
   css_file: <enum>
   class_name: <enum>
   directory: <enum>
-folder_structure: <enum>
+has_storybook: <bool>
+has_figma_code_connect: <bool>
+has_preview_files: <bool>
 ```
 
 If a subagent does not return a field (SKIP or trivial case), store the key with value `null` — never omit the key entirely. Downstream consumers rely on key presence.

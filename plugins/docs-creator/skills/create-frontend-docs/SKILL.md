@@ -105,16 +105,16 @@ Read `.claude/state/frontend-analysis.json`. Error cases:
 
 Build `.claude/docs/reference-component-creation-template.md` from JSON per the section-feeding map in [rules/component-creation-template-format.md](../../rules/component-creation-template-format.md). Concrete mapping:
 
-| Template section | JSON source |
+| Template section | JSON source (schema 1.3 canonical) |
 | ---- | ---- |
-| File layout | `architecture.top_level_dirs` + `component_inventory.components_dir_primary` + `component_inventory.folder_structure` |
-| Imports block | `component_inventory.canonical_skeleton_excerpt` (first N import lines) + `architecture.path_aliases` |
-| Props declaration | `component_inventory.primary_prop_type`, `ref_forwarding`, `naming_convention` |
+| File layout | `architecture.top_level_dirs` + `component_inventory.canonical_skeleton` (path) + `component_inventory.folder_structure` |
+| Imports block | Excerpt first N import lines from file referenced by `component_inventory.canonical_skeleton` |
+| Props declaration | `component_inventory.naming_conventions.component_file` (for file-naming) + observed prop pattern from scanner's Markdown Content (was `primary_prop_type`, `ref_forwarding`, `naming_convention` singular in legacy — all dropped/moved in 1.3) |
 | Styling model | `tech_stack.styling_model` — render as prescriptive paragraph |
-| Class naming | `tech_stack.class_naming` + `tech_stack.custom_class_prefix` — include "are classes used?" definitive answer |
-| State and data wiring | `data_flow.state_containers`, `data_flow.data_fetching`, `data_flow.forms`, `data_flow.authentication` |
-| Event handling | `component_inventory.event_handler_convention` |
-| Accessibility patterns | `component_inventory.a11y_observations` (or "None systematically observed") |
+| Class naming | `tech_stack.class_naming` + `tech_stack.custom_class_prefix` |
+| State and data wiring | `data_flow.state_containers`, `data_flow.data_fetching_pattern`, `data_flow.form_library`, `data_flow.auth_flow` (canonical names — were `data_fetching`, `forms`, `authentication` in legacy) |
+| Event handling | From scanner's Markdown Content `### → frontend-components-<root>.md` RULES file (was `component_inventory.event_handler_convention` in legacy) |
+| Accessibility patterns | From scanner's Markdown Content RULES section, OR "None systematically observed" (was `component_inventory.a11y_observations` in legacy) |
 | Test and story conventions | `component_inventory.test_colocation`, `storybook_present`, `storybook_coverage_pct` |
 | Design-token usage | `design_system.mechanism` + 1-2 examples from `design_system.color_palette` / `typography` |
 | Icon usage patterns (inline) | `design_system.icon_pattern.*` — see [rules/component-creation-template-format.md](../../rules/component-creation-template-format.md) `## Icon usage patterns` section spec |

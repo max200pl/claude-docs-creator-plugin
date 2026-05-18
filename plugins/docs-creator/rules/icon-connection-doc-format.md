@@ -2,9 +2,11 @@
 
 ## Rule
 
-When `/create-frontend-docs` materializes `design_system.icon_pattern` from `frontend-analysis.json`, it MUST write a standalone artefact at `<project_root>/.claude/docs/reference-icon-connection.md` following the shape below — in addition to the inline section embedded in `reference-component-creation-template.md`.
+When `/create-frontend-docs` materializes `design_system.icon_pattern` from `frontend-analysis.json`, it MUST write a standalone artefact at `<project_root>/.claude/docs/reference-icon-connection.md` (single-root) or `icon-connection-<root>.md` (multi-root per [`reference-frontend-analysis-schema.md` § File Naming Convention](../docs/reference-frontend-analysis-schema.md#file-naming-convention-canonical)) following the shape below — in addition to the inline section embedded in `reference-component-creation-template.md`.
 
 This standalone doc is the **human-facing reference**: a designer or developer (not an agent) reads it to learn "how do icons work in this codebase?" without parsing the analysis JSON or wading through framework idioms.
+
+> **Schema 1.3+ two-stream protocol:** body driver fields (`connection`, `color_change`, `library_name`, `path_convention`, `wrapper_component`) come from `frontend-analysis.json` `design_system.icon_pattern`. Tail-narrative sections (`Icon examples` table, `Notes` prose) come from scanner's `## Markdown Content` → `### → .../icon-connection-<root>.md` subsection. Older references in this rule to `icon_pattern.examples` / `icon_pattern.notes` describe field VALUES — in 1.3+ those values arrive via the Markdown Content stream, not via JSON.
 
 ## Why a standalone doc
 

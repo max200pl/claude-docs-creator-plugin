@@ -2,9 +2,11 @@
 
 ## Rule
 
-When `/create-frontend-docs` materializes `design_system.styling_patterns` from `frontend-analysis.json`, it MUST write a standalone artefact at `<project_root>/.claude/docs/reference-styling-flow.md` following the shape below.
+When `/create-frontend-docs` materializes `design_system.styling_patterns` from `frontend-analysis.json`, it MUST write a standalone artefact at `<project_root>/.claude/docs/reference-styling-flow.md` (single-root) or `styling-flow-<root>.md` (multi-root per [`reference-frontend-analysis-schema.md` § File Naming Convention](../docs/reference-frontend-analysis-schema.md#file-naming-convention-canonical)) following the shape below.
 
 This is the **project-specific styling flow** — the 4-step stepper instantiated with the detected project values (preprocessor, variable syntax, mixin syntax, import system, etc.). Component generators (`sciter-create-component` and any future React/Vue adapters) MUST read this artefact FIRST when emitting CSS — the toolkit's framework-specific reference (`reference-sciter-styling.md` etc.) is fallback only.
+
+> **Schema 1.3+ two-stream protocol:** body driver fields (`preprocessor`, `bundler`, `build_mode`, all 4 stepper sub-fields) come from `frontend-analysis.json` `design_system.styling_patterns`. Tail-narrative `Notes` section comes from scanner's `## Markdown Content` → `### → .../styling-flow-<root>.md` → `#### Notes` subsection. References in this rule to `styling_patterns.notes` describe the VALUE — in 1.3+ that value arrives via Markdown Content, not via JSON.
 
 ## Why a standalone doc
 

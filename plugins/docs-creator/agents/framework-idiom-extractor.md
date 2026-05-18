@@ -225,7 +225,7 @@ canonical_skeleton_source: <relative path>        # representative component for
 
 ## Framework Idioms (legacy template — DEPRECATED)
 
-<If framework_classification == "vanilla": write SKIP and omit everything below>
+<If framework_type == "vanilla": write SKIP and omit everything below>
 
 ### Classification
 
@@ -256,15 +256,15 @@ canonical_skeleton_source: <relative path>        # representative component for
 
 ## Trivial-Case Short-Circuit
 
-If `framework_classification == "vanilla"`:
+If `framework_type == "vanilla"`:
 
 ```markdown
 ## Summary Row
 
 ```yaml
 frontend_root: <path>
-framework_classification: vanilla
-framework_name: vanilla
+framework_type: vanilla
+base_framework: vanilla
 applicable: false
 reason: "no consistent component pattern detected; reference-component-creation-template.md omits Framework-specific idioms section"
 ```
