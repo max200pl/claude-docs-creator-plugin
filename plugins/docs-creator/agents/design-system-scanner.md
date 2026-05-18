@@ -204,66 +204,173 @@ Establish the **syntax dialect** the project uses. All later steps adapt their g
 
 Record any conflicts: mixed sub-component naming, half-migrated `@set` adoption, scope split between `"prefixed-class"` and `"global"`, missing `token_file` reference, typography mechanism conflicting with project convention docs.
 
-## Output Format
+## Output Format — TWO STREAMS
 
-```markdown
-## Summary Row
+> **Schema 1.3 contract** — see [`reference-frontend-analysis-schema.md`](../docs/reference-frontend-analysis-schema.md) for the canonical definition. This section must conform.
+>
+> Each scan pass produces **two output streams**:
+>
+> 1. **Structured YAML** — slim JSON fragment for `frontend-analysis.json` (driver fields only, ≤ ~1500 chars per root for design_system)
+> 2. **Markdown content** — rich catalog + rules + narrative for downstream `.md` writes by `create-frontend-docs` (color tables, icon catalogs, design-system notes, full token listings, etc.)
+>
+> Emit BOTH in the agent's response. Markdown stream goes after the YAML, prefixed `## Markdown Content`.
+
+### Stream 1 — Structured YAML (slim, JSON-bound)
 
 ```yaml
 frontend_root: <absolute path>
-source_of_truth: <file path relative to frontend_root>
-token_file: <relative path to CSS variables / token file — e.g. "src/styles/tokens.css", "res/shared/lib/tokens.css", or "none">
-typography_file: <relative path to typography file if separate from token_file — e.g. "src/styles/typography.css", or "none">
-mechanism: tailwind | unocss | panda | vanilla-extract | emotion | styled-components | mui-theme | chakra-theme | mantine-theme | antd-theme | css-variables | scss-variables | mixed | none
+
+# File paths — REQUIRED
+source_of_truth: <relative path>      # primary token definition file
+token_file: <relative path>           # token declarations file ("none" if absent)
+typography_file: <relative path>      # typography source ("none" if absent)
+
+# Top-level mechanism — REQUIRED
+mechanism: <"css-variables" | "scss-variables" | "less-variables" | "stylus-variables" | "tailwind-theme" | "mui-theme" | "design-tokens-json" | "mixed" | "none">
+has_token_system: <true | false>      # any structured token mechanism present?
+dark_mode: <"class-based" | "media-query" | "attribute-based" | "context-based" | "none">
+component_skinning: <"className" | "sx" | "styled" | "apply" | "mixed">
+
+# Schema-only summaries — REQUIRED (counts/enums; NO listings)
 color_palette:
-  brand: [<color names or hex>]
-  semantic: [<names>]
-  neutral_steps: <integer>
-dark_mode: class | media | attr | context | none
+  neutral_steps: <integer>            # count of named neutral colors (0 if none)
+                                      # NOTE: brand[]/semantic[] lists belong in markdown stream, not here
 typography:
-  families: [<names>]
-  scale_steps: <integer>
+  families: [<string>]                # small driver list of font-family names
+  scale_steps: <integer>              # count of font-size scale entries (0 if none)
 spacing:
-  scale_type: 4px-multiples | 8px-multiples | fibonacci | custom
-  steps: <integer>
-breakpoints: [<names>]
-icon_system: <name or "none">
+  scale_type: <"4dip-multiples" | "8dip-multiples" | "ad-hoc" | "geometric" | "custom">
+  steps: <integer>                    # count of spacing scale entries (0 if none)
+breakpoints: [<string>]               # list of named breakpoints; [] if fixed-window
+radius: <string>                      # single representative radius or "varies"
+icon_system: <string>                 # "none" | library-name | "custom-svg" | "@image-map"
+
+# Icon pattern — REQUIRED (Phase 3.6)
 icon_pattern:
-  connection: <enum | null>            # see reference-icon-patterns.md#connection-enum
-  color_change: <enum>                 # see reference-icon-patterns.md#color-change-enum (use "none" if no state-driven change)
-  library_name: <string | "none">
-  path_convention: <string | "none">
+  connection: <enum>                  # see reference-icon-patterns.md
+  color_change: <enum>                # see reference-icon-patterns.md
+  library_name: <string>              # "none" or library name
+  path_convention: <string>           # e.g. "__DIR__ + 'img/<name>.svg'"
   wrapper_component:
-    name: <string | null>
-    path: <relative path | null>
-  examples:                            # max 3 — { path, connection, color_change }
-    - { path: <file>, connection: <enum>, color_change: <enum> }
-  notes: <free-text — conflicts, non-recommended patterns, or "">
-styling_patterns:                       # framework-specific CSS organization signal — 5-step (Step 0 + Stepper 1-4)
-  # Step 0 — Preprocessor + build pipeline (NEW in 0.17.0)
+    name: <string>                    # "" if none
+    path: <relative path>             # "" if none
+  # FORBIDDEN in JSON: examples[] list and notes prose → markdown stream
+
+# Styling patterns — REQUIRED (Phase 3.9 — preprocessor-aware)
+styling_patterns:
   preprocessor: <"none" | "scss" | "sass" | "less" | "stylus" | "postcss">
-  file_extensions: [<list>]             # e.g. [".scss", ".module.scss"] or [".css"]
-  bundler: <"vite" | "webpack" | "rollup" | "parcel" | "runtime">
+  file_extensions: [<string>]         # e.g. [".scss", ".module.scss"]
+  bundler: <"vite" | "webpack" | "rollup" | "parcel" | "runtime" | "none">
   build_mode: <"runtime" | "compile-time-bundled" | "extracted">
-  # Step 1 — Topology
   css_file_layout: <"co-located" | "centralized" | "mixed">
   import_syntax: <"css-at-import" | "scss-use" | "scss-import" | "scss-forward" | "less-import" | "stylus-import" | "bundler-js" | "mixed">
   import_strategy: <"main-entry-aggregate" | "per-component-inline" | "bundler-js-driven" | "mixed">
-  main_entry: <relative path | null>    # populated only when import_strategy = "main-entry-aggregate"
-  # Step 2 — Scope
-  styleset_usage: <"none" | "occasional" | "primary">  # Sciter @set / generic style-module mechanism
+  main_entry: <relative path | "">    # populated only when import_strategy = "main-entry-aggregate"
+  styleset_usage: <"none" | "occasional" | "primary">
   encapsulation:
     scope: <"global" | "prefixed-class" | "data-attribute">
-    # Step 3 — Naming
-    naming_prefix_pattern: <string | null>      # e.g. "<component-name>" for BEM block
-    sub_component_naming: <"namespaced" | "chained" | "none">  # `<parent>-<sub>` vs `<parent>__<sub>`
-  # Step 4 — Ingredients (preprocessor-aware)
+    naming_prefix_pattern: <string>
+    sub_component_naming: <"namespaced" | "chained" | "none">
   variable_syntax: <"css-custom-properties" | "scss-dollar" | "less-at" | "stylus-equals" | "mixed">
   mixin_syntax: <"sciter-at-mixin" | "scss-mixin-include" | "less-class-mixin" | "sass-placeholder" | "stylus-mixin" | "none">
   typography_mechanism: <"mixin" | "css-class" | "inline" | "mixed">
-  notes: <free-text — observed patterns or conflicts, or "">
-component_skinning: className | sx | styled | apply | mixed
+  # FORBIDDEN in JSON: notes prose → markdown stream
 ```
+
+#### Forbidden fields (DO NOT emit in YAML stream)
+
+These were emitted in legacy schemas — now they belong in the markdown stream:
+
+| Legacy field | Where it goes now |
+| ---- | ---- |
+| `color_palette.brand` (list) | Markdown stream → `Brand` table in `.claude/rules/frontend-design-system-<root>.md` |
+| `color_palette.semantic` (list) | Markdown stream → `Semantic` table |
+| `colors`, `primary_color`, `background_color` (GB extras) | Markdown stream → color tables |
+| `shadows` (catalog) | Markdown stream → `Shadows` section |
+| `z_index` (catalog) | Markdown stream → `Z-index` section |
+| `radii_dip` (catalog) | Markdown stream → `Borders and Radii` section; canonical scalar is `radius` |
+| `css_variables_found`, `scss_partials_found`, `typography_scale_found` (file lists) | Markdown stream → relevant section |
+| `mechanism_detail`, `dark_mode_strategy`, `theme_system`, `token_source`, `secondary_sources` | DROP (duplicates of canonical fields) |
+| `notes` (prose paragraph) | Markdown stream → `## Notes` section |
+| `icon_pattern.examples` (file path list) | Markdown stream → `## Icon examples` section of `.claude/docs/reference-icon-connection-<root>.md` |
+| `icon_pattern.notes` (prose) | Markdown stream → `## Notes` section of icon-connection doc |
+| `styling_patterns.notes` (prose) | Markdown stream → `## Notes` section of `.claude/docs/reference-styling-flow-<root>.md` |
+| `changes_vs_docs` | Top-level `drift.design_system` (handled by orchestrator, not this scanner) |
+
+### Stream 2 — Markdown Content (catalog + rules + narrative)
+
+After the YAML, emit a `## Markdown Content` section with the full catalog content. `create-frontend-docs` Phase: Assemble routes these subsections to the correct artefact files.
+
+```markdown
+## Markdown Content
+
+### → `.claude/rules/frontend-design-system-<root>.md` (RULES file)
+
+#### Color Palette
+
+##### Brand
+
+| Name | Value | Usage |
+| ---- | ---- | ---- |
+| <variable> | <hex> | <usage description> |
+
+(... 13 rows for pc_cleaner desktop, etc.)
+
+##### Semantic
+
+| Name | Value | Usage |
+| ---- | ---- | ---- |
+| <variable> | <hex> | <usage description> |
+
+##### Neutral (N named steps)
+
+| Name | Value |
+| ---- | ---- |
+| <variable> | <hex> |
+
+##### Brand Alpha Variants / Button Color Maps / etc.
+
+(Project-specific sub-sections — emit only if detected)
+
+#### Borders and Radii
+
+| Context | Radius | Notes |
+| ---- | ---- | ---- |
+
+#### Shadows
+
+(prose or table — only if detected)
+
+#### Z-index
+
+(table — only if detected)
+
+#### Notes
+
+(prose paragraph about design-system quirks, build-injected variables, latent bugs, etc.)
+
+### → `.claude/docs/reference-icon-connection-<root>.md` (NARRATIVE file)
+
+#### Icon examples
+
+| File path | Connection | Color change |
+| ---- | ---- | ---- |
+| <path> | <enum> | <enum> |
+
+(up to 3 representative examples)
+
+#### Notes
+
+(prose — conflicts, non-recommended patterns, divergence vs project rules docs)
+
+### → `.claude/docs/reference-styling-flow-<root>.md` (NARRATIVE file)
+
+#### Notes
+
+(prose — preprocessor-specific observations, edge cases, build-injection caveats, etc.)
+```
+
+Each `### →` heading specifies which artefact `create-frontend-docs` writes the following subsections into. Order matters — `create-frontend-docs` reads top-down.
 
 ## frontend-design-system.md
 

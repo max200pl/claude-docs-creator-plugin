@@ -25,7 +25,7 @@ If the project needs a FULL refresh, run `/analyze-frontend` (to regenerate the 
 
 | `<area>` | Re-invokes | Updates in JSON | Regenerates artefact |
 | ---- | ---- | ---- | ---- |
-| `design-system` | `design-system-scanner` | `frontend_roots[*].design_system` | `.claude/rules/frontend-design-system.md` |
+| `design-system` | `design-system-scanner` | `frontend_roots[*].design_system` | `.claude/rules/frontend-design-system.md` + `.claude/docs/reference-icon-connection.md` (from `design_system.icon_pattern`) + `.claude/docs/reference-styling-flow.md` (from `design_system.styling_patterns`, schema 1.3+) |
 | `components` | `component-inventory` | `frontend_roots[*].component_inventory` | `.claude/rules/frontend-components.md` + `.claude/docs/reference-component-inventory.md` + `.claude/state/component-registry.json` (create or merge-update; no markdown mirror) |
 | `data-flow` | `data-flow-mapper` | `frontend_roots[*].data_flow` | `.claude/sequences/frontend-data-flow.mmd` |
 | `architecture` | `tech-stack-profiler` (Wave 1 refresh) + `architecture-analyzer` | `frontend_roots[*].tech_stack` + `.architecture` | `.claude/docs/reference-architecture-frontend.md` |
@@ -116,7 +116,12 @@ Write JSON back atomically (temp-write + rename).
 
 Based on `<area>`:
 
-- `design-system` → regenerate only `.claude/rules/frontend-design-system.md` from `design_system` + new frontmatter `paths:` scoping; include `token_file:` and `typography_file:` in frontmatter (values from `design_system.token_file` and `design_system.typography_file` in JSON, or `"none"` if absent)
+- `design-system` → regenerate THREE artefacts from the `design_system` block:
+  1. `.claude/rules/frontend-design-system.md` (+ per-root suffix) — from `design_system` core fields. New frontmatter `paths:` scoping. Include `token_file:` and `typography_file:` in frontmatter (values from `design_system.token_file` / `.typography_file`, or `"none"` if absent).
+  2. `.claude/docs/reference-icon-connection.md` (+ per-root suffix) — from `design_system.icon_pattern`. Follow `rules/icon-connection-doc-format.md` shape. Always written when `icon_pattern` exists (which is required per schema 1.2+).
+  3. `.claude/docs/reference-styling-flow.md` (+ per-root suffix) — from `design_system.styling_patterns`. Follow `rules/styling-flow-doc-format.md` shape with per-preprocessor dialect templating. Always written when `styling_patterns` exists (required per schema 1.3+).
+
+  **Parity invariant:** `/docs-creator:create-frontend-docs` writes all three artefacts on a fresh run; `/docs-creator:update-frontend-docs design-system` MUST regenerate the same three. Prior to schema 1.3, the styling-flow artefact was skipped on update — this is the parity fix.
 - `components` → regenerate `.claude/rules/frontend-components.md` + `.claude/docs/reference-component-inventory.md` from `component_inventory`; prepend `naming_conventions:` frontmatter block to `reference-component-inventory.md`; **also always write `.claude/state/component-registry.json`** (no markdown mirror): merge if exists (preserve `figma_node_id` records, overwrite `status: "unverified"`); create fresh if not exists
 - `data-flow` → regenerate `.claude/sequences/frontend-data-flow.mmd` from `data_flow.primary_flow_mermaid`
 - `architecture` → regenerate `.claude/docs/reference-architecture-frontend.md` from `tech_stack` + `architecture`; ALSO regenerate `reference-component-creation-template.md` (because styling_model / class_naming in Stack section changed)
