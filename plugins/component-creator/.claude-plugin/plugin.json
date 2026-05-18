@@ -1,7 +1,7 @@
 {
   "name": "component-creator",
   "description": "Create frontend components following project conventions detected by docs-creator. Reads reference-component-creation-template.md and generates components matching design system, naming rules, and framework idioms.",
-  "version": "0.0.29",
+  "version": "0.0.28",
   "author": {
     "name": "Maksym Poskannyi"
   },

@@ -12,7 +12,7 @@
       "name": "docs-creator",
       "source": "./plugins/docs-creator",
       "description": "Authoring, validation, and drift-detection for .claude/ docs. Auto-emits version banner + update-available indicator on every slash-command invocation via UserPromptSubmit hook (banner format: '[plugin vX.Y.Z | skill]' or '[plugin vX.Y.Z → vA.B.C available | skill]' if outdated). Ships analyze-frontend (icon_pattern + preprocessor-aware styling_patterns with 5-step detection: Preprocessor/Topology/Scope/Naming/Ingredients), create-frontend-docs (writes reference-icon-connection.md + reference-styling-flow.md), analyze-api-contracts, init-project, update-docs, validate-claude-docs, status, menu and more.",
-      "version": "0.18.3",
+      "version": "0.18.2",
       "author": {
         "name": "Maksym Poskannyi"
       },
@@ -30,7 +30,7 @@
       "name": "component-creator",
       "source": "./plugins/component-creator",
       "description": "Figma-to-code component creation with SSIM visual verification, Code Connect integration, and component registry. Auto-emits version banner + update-available indicator on every slash-command invocation via UserPromptSubmit hook.",
-      "version": "0.0.29",
+      "version": "0.0.28",
       "author": {
         "name": "Maksym Poskannyi"
       },
