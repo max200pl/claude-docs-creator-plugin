@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "docs-creator + component-creator plugins for Claude Code — documentation authoring and Figma-to-code component creation.",
-    "version": "0.20.0"
+    "version": "0.21.0"
   },
   "plugins": [
     {
       "name": "docs-creator",
       "source": "./plugins/docs-creator",
-      "description": "Authoring, validation, and drift-detection for .claude/ docs. Schema 1.3 closed (M11 complete): all 7 Wave 2 subagents aligned to two-stream output (slim JSON + Markdown Content section with ### → routing); canonical multi-root filename convention (docs/ drop 'reference-' prefix); `--rebuild-schema` flag for one-command 1.2 → 1.3 migration; top-level `drift` block consolidates 6 scattered drift signals. Auto-emits version banner + update-available indicator on every slash-command invocation. Ships analyze-frontend, create-frontend-docs, update-frontend-docs, analyze-api-contracts, init-project, update-docs, validate-claude-docs, status, menu and more.",
-      "version": "0.20.1",
+      "description": "Authoring, validation, and drift-detection for .claude/ docs. Schema 1.4 (M13 — registry as single source of truth): `component-registry.json` is canonical per-component catalog; `reference-component-inventory.md` DROPPED; new `--migrate-inventory-to-registry` flag for 1.3 → 1.4 migration. Schema 1.3 (M11 closed): all 7 Wave 2 subagents two-stream output (slim JSON + Markdown Content section with ### → routing); canonical multi-root filename convention; `--rebuild-schema` flag for 1.2 → 1.3 migration; top-level `drift` block. Auto-emits version banner + update-available indicator. Ships analyze-frontend, create-frontend-docs, update-frontend-docs, analyze-api-contracts, init-project, update-docs, validate-claude-docs, status, menu and more.",
+      "version": "0.21.1",
       "author": {
         "name": "Maksym Poskannyi"
       },

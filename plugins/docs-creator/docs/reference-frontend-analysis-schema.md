@@ -2,7 +2,19 @@
 description: "Canonical schema for frontend-analysis.json — the contract every analyze-frontend subagent emits and every downstream consumer reads. Schema version 1.3."
 ---
 
-# `frontend-analysis.json` — Canonical Schema 1.3
+# `frontend-analysis.json` — Canonical Schema 1.4
+
+> **1.4 change (M13):** `component-registry.json` becomes the single source of truth for the per-component catalog. `reference-component-inventory.md` is no longer materialized. The `component_inventory` block here keeps only structural counters + naming convention + `registry_path` pointer — full per-component data (name, path, type, description, uses[], lifecycle) lives in `.claude/state/component-registry.json`.
+
+## Schema version history
+
+| Version | Date | Changes |
+| ---- | ---- | ---- |
+| 1.0 | initial | Baseline analyze-frontend output |
+| 1.1 | 2026-04-21 | Phase A gap fields (token_file, naming_conventions, styling_system) |
+| 1.2 | 2026-05-12 | Phase 3.6 — `design_system.icon_pattern` added |
+| 1.3 | 2026-05-18 | M11 closure — all 8 blocks aligned, canonical field names, two-stream scanner output, top-level `drift` block, canonical multi-root naming |
+| 1.4 | 2026-05-18 | M13 — `component-registry.json` is single source of truth for components; `reference-component-inventory.md` dropped; `component_inventory` block slimmed to counters + naming + `registry_path` pointer |
 
 > Source of truth for the JSON shape produced by `/docs-creator:analyze-frontend` and `/docs-creator:update-frontend-docs <area>`.
 > Subagents (`tech-stack-profiler`, `architecture-analyzer`, `design-system-scanner`, `component-inventory`, `data-flow-mapper`, `framework-idiom-extractor`, `feature-flow-detector`) MUST emit the YAML shape defined here.
@@ -21,9 +33,9 @@ description: "Canonical schema for frontend-analysis.json — the contract every
 ## Top-Level Structure
 
 ```yaml
-schema_version: "1.3"
+schema_version: "1.4"
 generated:
-  plugin_version: <string>          # e.g. "0.19.0"
+  plugin_version: <string>          # e.g. "0.21.0"
   skill: <string>                   # "analyze-frontend" | "update-frontend-docs"
   ts: <ISO-8601 UTC>                # scan start
   wall_clock_sec: <int>             # scan duration
@@ -228,10 +240,9 @@ design_system:
 
 ```yaml
 component_inventory:
-  # Required
+  # Required — structural metadata + naming convention only
+  # 1.4: per-component catalog (name, path, type, description, uses[]) lives in registry — see registry_path below
   total_components: <int>            # canonical name was 'total_components_found' in legacy
-  canonical_skeleton: <path>         # canonical name was 'canonical_skeleton_file' in legacy
-                                     # path to a representative component used as a template
   folder_structure: <enum>           # "co-located" | "by-type" | "flat" | "mixed"
   naming_conventions:                # full object — REQUIRED
     component_file: <enum>           # "PascalCase" | "kebab-case" | "snake_case"
@@ -246,16 +257,29 @@ component_inventory:
   widgets_count: <int>               # widget/feature components count (0 if not applicable)
   layouts_count: <int>               # layout components count (0 if not applicable)
   figma_code_connect_count: <int>    # 0 if has_figma_code_connect == false
+
+  # 1.4: pointer to single source of truth for component catalog
+  registry_path: <string>            # ".claude/state/component-registry.json" (relative to project root)
+                                     # canonical_skeleton (representative file) now derivable from registry —
+                                     # query first entry with status: "managed" OR type: "primitive"
 ```
 
-**Forbidden in JSON:**
+**Forbidden in JSON (1.4):**
 
-- `naming_convention` (singular) — DUPLICATE of `naming_conventions.component_file` (was lossy summary string), drop
-- `ui_library` — DUPLICATE of `tech_stack.ui_library`, drop
-- `feature_areas`, `feature_views`, `leaf_components`, `sub_views`, `shared_primitives_source` (GB-only classifications) — NARRATIVE, route to `.claude/docs/reference-component-inventory-<root>.md`
-- `shared_components`, `view_components` (PC-only lists) — NARRATIVE, route to same
-- `components` (Sc-only enum) — NARRATIVE, route to same
-- `new_since_last_doc` — DRIFT, route to `drift.component_inventory`
+- `canonical_skeleton` — DROPPED in 1.4 (was in 1.3). The "representative component" is now derived on-demand from `component-registry.json` (query first entry with `status: "managed"` OR `type: "primitive"`)
+- `components` (Sc-only enum), `feature_areas`, `feature_views`, `leaf_components`, `sub_views`, `shared_primitives_source` (GB-only classifications), `shared_components`, `view_components` (PC-only lists) — **MOVED to `component-registry.json`** as per-entry `description` field + `type` classification. NO longer materialized into `reference-component-inventory-<root>.md` (that artefact is dropped in 1.4)
+- `naming_convention` (singular) — DUPLICATE of `naming_conventions.component_file`, dropped (1.3)
+- `ui_library` — DUPLICATE of `tech_stack.ui_library`, dropped (1.3)
+- `new_since_last_doc` — DRIFT, route to `drift.component_inventory` (1.3)
+
+### 1.4 migration — `reference-component-inventory-<root>.md`
+
+**This artefact is no longer materialized.** Replaced by:
+
+1. **`component-registry.json`** (single source of truth) — per-component catalog with name, path, type, description, uses[], lifecycle state (figma_connected, ssim_score, status). See `## Component Registry Schema` section in this doc.
+2. **`.claude/rules/frontend-components-<root>.md`** — conventions, prop patterns, file-structure rules (already exists; component-inventory agent's Markdown Content stream routes RULES content here).
+
+Existing projects with legacy `reference-component-inventory-<root>.md`: see Migration Guide § 1.3 → 1.4 below. One-command migration via `/docs-creator:update-frontend-docs --migrate-inventory-to-registry`.
 
 ---
 
@@ -372,6 +396,82 @@ drift:
 
 ---
 
+## Component Registry Schema (1.4 — single source of truth)
+
+> Schema 1.4 (M13) — `component-registry.json` is the canonical per-component catalog. Lives at `<project_root>/.claude/state/component-registry.json`. Read by component-creator skills + `/status` + `/analyze-frontend` (for merge).
+
+```yaml
+# .claude/state/component-registry.json
+{
+  "schema_version": "1.0",                        # registry schema (independent of analysis schema)
+  "generated": {
+    "ts": "<ISO-UTC>",                            # last write
+    "last_full_scan_ts": "<ISO-UTC>",             # last /analyze-frontend merge
+    "plugin_version": "<X.Y.Z>"
+  },
+  "components": [
+    {
+      // Identity — REQUIRED
+      "name": "<ComponentName>",                  // PascalCase typically
+      "path": "<relative-from-project-root>",     // e.g. "src/components/Button/Button.tsx"
+      "type": "primitive" | "feature" | "local",  // classification
+      "description": "<≤200 chars one-liner>",    // 1.4 NEW — was in inventory.md table
+
+      // Composition — REQUIRED
+      "uses": ["<dep-name>", ...],                // dependency graph; [] if leaf
+      "parent": "<ParentName>" | null,            // for type:local — host component
+
+      // Lifecycle state — REQUIRED, managed by component-creator
+      "status": "scanned-only" | "managed" | "stale" | "done" | "pending",
+      "created_at": "<ISO-UTC>",                  // first registry entry
+      "last_verified_at": "<ISO-UTC>" | null,     // last /update-component or /create-component success
+      "last_scanned_at": "<ISO-UTC>" | null,      // 1.4 NEW — last /analyze-frontend touch
+
+      // Figma — OPTIONAL
+      "figma_node_id": "<id>" | null,
+      "figma_file_key": "<key>" | null,
+      "figma_connected": <bool>,
+      "figma_last_modified": "<ISO-UTC>" | null,
+      "last_figma_sync_at": "<ISO-UTC>" | null,   // last /sync-registry call
+
+      // Visual verification — OPTIONAL (component-creator only)
+      "ssim_score": <float 0-1> | null            // last visual verification
+    }
+  ]
+}
+```
+
+### Status enum
+
+| Value | Meaning |
+| ---- | ---- |
+| `"scanned-only"` | Found on disk by `/analyze-frontend`; not yet managed by component-creator (no Figma metadata, no SSIM run) |
+| `"managed"` | Created by `/create-component` or `/update-component` — full lifecycle tracked. May lack Figma metadata if user opted out. |
+| `"pending"` | Created but verification incomplete (e.g. SSIM run failed; or initial scaffold pending tweaks) |
+| `"done"` | Verified, SSIM ≥ threshold, Figma Code Connect published |
+| `"stale"` | Was in registry, but file no longer exists on disk (caught by `/validate-registry` or last scan) |
+
+### Merge rules during `/analyze-frontend`
+
+When `component-inventory` agent emits per-component entries via Markdown Content (T3):
+
+| Scenario | Action |
+| ---- | ---- |
+| Entry NEW (not in registry) | ADD with `status: "scanned-only"`, `last_scanned_at: now()`, `created_at: now()` |
+| Entry EXISTS (matches by `path` or by `name+type`) | UPDATE `name`, `path`, `type`, `description`, `uses[]`, `last_scanned_at: now()` — PRESERVE lifecycle state (`status`, `figma_*`, `ssim_score`, `created_at`, `last_verified_at`, `last_figma_sync_at`) |
+| Entry was in registry but file gone | UPDATE `status: "stale"` (do not delete — user may be mid-refactor) |
+| Conflict (e.g. registry has different `type` than scanner detected) | Trust SCANNER for type/description; preserve everything else. Flag in `drift.component_inventory`. |
+
+### Registry vs analysis JSON — separation of concerns
+
+| | `component-registry.json` | `frontend-analysis.json` `component_inventory` |
+| ---- | ---- | ---- |
+| **What** | Per-component catalog + lifecycle | Aggregate stats + naming conventions |
+| **Size** | Grows with N components (~200 bytes/entry) | Fixed ~500 bytes/block, regardless of component count |
+| **Mutation cadence** | Continuous (every component-creator op) | Refreshed on `/analyze-frontend` / `/update-frontend-docs` |
+| **Source of truth for** | Component identity + state | Project-level component conventions |
+| **Audience** | Machine (component-creator + /status) | Machine + Markdown materialization |
+
 ## Migration from Schema 1.2 → 1.3
 
 Projects with schema 1.2 JSON gracefully degrade — generators tolerant of missing renamed-canonical fields by checking aliases:
@@ -394,6 +494,46 @@ Projects with schema 1.2 JSON gracefully degrade — generators tolerant of miss
 | `naming_conventions.<sub>` | `naming_convention` (singular dropped — was lossy summary) |
 
 **Forced rebuild:** `/docs-creator:update-frontend-docs --rebuild-schema` re-runs scan with 1.3-emitting subagents. Required for downstream consumers that don't implement alias fallback.
+
+## Migration from Schema 1.3 → 1.4 (M13)
+
+Single breaking change: `reference-component-inventory-<root>.md` artefact is **dropped**. Per-component catalog moves to `component-registry.json`.
+
+| Concern | 1.3 location | 1.4 location |
+| ---- | ---- | ---- |
+| Per-component name, path, type | inventory.md table + registry.json | **registry.json only** |
+| Per-component description | inventory.md table (prose column) | **registry.json `description` field** (new) |
+| Conventions, prop patterns, file structure | inventory.md sections | `.claude/rules/frontend-components-<root>.md` (already exists; no change) |
+| Counter stats (total_components, primitives_count, etc.) | analysis JSON `component_inventory` block | **unchanged** (still in analysis JSON) |
+| `canonical_skeleton` (representative file path) | analysis JSON `component_inventory.canonical_skeleton` | **derived from registry**: query first entry with `status: "managed"` OR `type: "primitive"` |
+
+### Migration command
+
+```text
+/docs-creator:update-frontend-docs --migrate-inventory-to-registry
+```
+
+Effect:
+
+1. For each existing `reference-component-inventory-<root>.md`: parse "Notable components" table; extract `name`, `path`, `description` per row
+2. Merge into `component-registry.json`:
+   - If entry with same `name` (or `path`) exists → UPDATE description (preserve lifecycle state)
+   - If new → ADD with `status: "scanned-only"`, `last_scanned_at: now()`
+3. Rename `reference-component-inventory-<root>.md` → `reference-component-inventory-<root>.md.bak` (recover safety)
+4. Run `/analyze-frontend` once to refresh `component_inventory` block (drops `canonical_skeleton` field, adds `registry_path`)
+5. Final report flags any inventory.md descriptions that couldn't be migrated (e.g. ambiguous component name)
+
+### Forced rebuild path
+
+`/docs-creator:update-frontend-docs --rebuild-schema` (from M11 T7) also handles 1.3 → 1.4:
+
+- All 7 subagents re-invoked; component-inventory agent emits to registry.json instead of inventory.md
+- Existing inventory.md files left in place but flagged as deprecated; manual delete recommended after verification
+- `schema_version: "1.4"` written to refreshed JSON
+
+### Why not auto-delete inventory.md?
+
+The .md file may contain user-authored notes outside the auto-generated `## Notable components` table. Preserve `.bak` so user can copy any unique content into registry or rules.
 
 ## File Naming Convention (CANONICAL)
 

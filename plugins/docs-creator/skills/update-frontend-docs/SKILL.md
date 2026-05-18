@@ -26,7 +26,7 @@ If the project needs a FULL refresh, run `/analyze-frontend` (to regenerate the 
 | `<area>` | Re-invokes | Updates in JSON | Regenerates artefact |
 | ---- | ---- | ---- | ---- |
 | `design-system` | `design-system-scanner` | `frontend_roots[*].design_system` | `.claude/rules/frontend-design-system.md` + `.claude/docs/reference-icon-connection.md` (from `design_system.icon_pattern`) + `.claude/docs/reference-styling-flow.md` (from `design_system.styling_patterns`, schema 1.3+) |
-| `components` | `component-inventory` | `frontend_roots[*].component_inventory` | `.claude/rules/frontend-components.md` + `.claude/docs/reference-component-inventory.md` + `.claude/state/component-registry.json` (create or merge-update; no markdown mirror) |
+| `components` | `component-inventory` | `frontend_roots[*].component_inventory` | `.claude/rules/frontend-components.md` (rules) + `.claude/state/component-registry.json` (SoT — merge per-component entries; preserve lifecycle state) — **1.4: reference-component-inventory.md NO LONGER generated** |
 | `data-flow` | `data-flow-mapper` | `frontend_roots[*].data_flow` | `.claude/sequences/frontend-data-flow.mmd` |
 | `architecture` | `tech-stack-profiler` (Wave 1 refresh) + `architecture-analyzer` | `frontend_roots[*].tech_stack` + `.architecture` | `.claude/docs/reference-architecture-frontend.md` |
 | `framework-idioms` | `framework-idiom-extractor` | `frontend_roots[*].framework_idioms` | Section in `reference-component-creation-template.md` (triggers full template rewrite since idioms feed it) |
@@ -46,7 +46,34 @@ If the project needs a FULL refresh, run `/analyze-frontend` (to regenerate the 
 /update-frontend-docs template               # re-assemble template from current JSON (no subagent re-run)
 /update-frontend-docs <area> --all-frontends # apply to every frontend in JSON (default: prompt per frontend if N > 1)
 /update-frontend-docs --rebuild-schema       # M11 T7: forced full re-scan, migrates schema 1.2 → 1.3 (see Phase: Rebuild Schema below)
+/update-frontend-docs --migrate-inventory-to-registry  # M13 T5: one-time migration from 1.3 inventory.md → 1.4 registry-only
 ```
+
+## `--migrate-inventory-to-registry` mode (M13 T5 — one-time 1.3 → 1.4 migration)
+
+> Replaces deprecated per-root `reference-component-inventory-<root>.md` artefacts with merge into `component-registry.json`.
+
+When to use:
+
+- Project at schema 1.3 has `.claude/docs/reference-component-inventory-<root>.md` files
+- Upgrading docs-creator past 0.21.0 (which dropped inventory.md materialization)
+
+Effect:
+
+1. **Locate** all `reference-component-inventory*.md` (or `component-inventory-*.md` for multi-root canonical) files
+2. **Parse** the `## Notable components` table per file: extract `Name | Path | Description` columns
+3. **Read** existing `component-registry.json`
+4. **Merge each row**:
+   - Match by `name` (case-sensitive) OR `path` (exact)
+   - If existing entry found → UPDATE `description` (preserve lifecycle state — `status`, `figma_*`, `ssim_score`, `created_at`, `last_verified_at`)
+   - If no match (new) → ADD with `status: "scanned-only"`, `last_scanned_at: now()`, `created_at: now()`
+5. **Rename source** `reference-component-inventory-<root>.md` → `reference-component-inventory-<root>.md.bak.YYYYMMDD` (recovery safety)
+6. **Update CLAUDE.md** — remove `Component inventory: [...]` line from `### Frontend` subsection if present
+7. **Final report** flags any inventory.md rows that couldn't be merged (e.g. missing path column; ambiguous name match across roots)
+
+Conflicts:
+
+- `--migrate-inventory-to-registry` + `--rebuild-schema` → rebuild covers it (rebuild does fresh scan, populates registry from scratch). Migration only needed if user wants to preserve EXISTING inventory.md descriptions (which `--rebuild-schema` would lose because scanner re-generates descriptions from fresh code observation).
 
 ## `--rebuild-schema` mode (M11 T7 migration path)
 
@@ -219,7 +246,15 @@ Based on `<area>`:
   - Substitute `<root>` in the target path with per-frontend suffix (per file-naming rules above)
   - Write the extracted content (without the routing `### →` H3) to the target file, AFTER the frontmatter and JSON-driven sections
   - If scanner did not emit a particular `### →` subsection, do NOT fabricate that content — omit those sections from the artefact
-- `components` → regenerate `.claude/rules/frontend-components.md` + `.claude/docs/reference-component-inventory.md` from `component_inventory`; prepend `naming_conventions:` frontmatter block to `reference-component-inventory.md`; **also always write `.claude/state/component-registry.json`** (no markdown mirror): merge if exists (preserve `figma_node_id` records, overwrite `status: "unverified"`); create fresh if not exists
+- `components` → regenerate TWO artefacts from `component_inventory` block + scanner Markdown Content streams:
+  1. `.claude/rules/frontend-components.md` (+ per-root suffix) — body from scanner's `### → .claude/rules/frontend-components-<root>.md` Markdown Content subsection (RULES content: conventions, prop patterns, file structure, anti-patterns). Prepend frontmatter (description, paths: scoping, naming_conventions block from JSON).
+  2. `.claude/state/component-registry.json` (single source of truth — schema 1.4) — MERGE per-component entries from scanner's `### → .claude/state/component-registry.json` Markdown Content subsection. Rules:
+     - **New entry** (no `path`/`name` match): ADD with `status: "scanned-only"`, `last_scanned_at: now()`, `created_at: now()`
+     - **Existing entry** (matches): UPDATE `name`, `path`, `type`, `description`, `uses[]`, `last_scanned_at: now()`. PRESERVE lifecycle fields (`status` ≠ "scanned-only" preserved; `figma_*`, `ssim_score`, `created_at`, `last_verified_at`, `last_figma_sync_at`).
+     - **Was in registry but file missing on current scan**: UPDATE `status: "stale"`. Do NOT delete.
+     - Update top-level `generated.last_full_scan_ts: now()` on the registry JSON.
+
+  **1.4 change (M13):** `.claude/docs/reference-component-inventory-<root>.md` is **NO LONGER GENERATED**. Per-component catalog (name, path, type, description, uses) lives ONLY in `component-registry.json`. If an existing legacy `.md` file is detected, warn user and suggest `--migrate-inventory-to-registry`.
 - `data-flow` → regenerate `.claude/sequences/frontend-data-flow.mmd` from `data_flow.primary_flow_mermaid`
 - `architecture` → regenerate `.claude/docs/reference-architecture-frontend.md` from `tech_stack` + `architecture`; ALSO regenerate `reference-component-creation-template.md` (because styling_model / class_naming in Stack section changed)
 - `framework-idioms` → regenerate `reference-component-creation-template.md` (framework idioms are one of its sections)

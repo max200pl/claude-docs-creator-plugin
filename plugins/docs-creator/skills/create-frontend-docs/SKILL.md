@@ -33,7 +33,7 @@ All artefacts land in the target project's `.claude/` and the root `CLAUDE.md`. 
 - `.claude/rules/frontend-design-system.md` — design tokens rule with `paths:` scoping
 - `.claude/rules/frontend-components.md` — component conventions rule with `paths:` scoping
 - `.claude/docs/reference-architecture-frontend.md` — Stack + Architecture sections (merged from `tech_stack` + `architecture` + `framework_idioms` in JSON)
-- `.claude/docs/reference-component-inventory.md` — notable-components reference table
+- ~~`.claude/docs/reference-component-inventory.md`~~ — **DROPPED in 1.4 (M13)**. Per-component catalog now lives in `.claude/state/component-registry.json` (single source of truth). Component conventions remain in `.claude/rules/frontend-components.md`.
 - `.claude/docs/reference-icon-connection.md` — icon connection method, color-change strategy, naming convention (from `design_system.icon_pattern`)
 - `.claude/docs/reference-styling-flow.md` — project-specific 4-step styling stepper (Topology / Scope / Naming / Ingredients) with detected preprocessor + variable + mixin syntax (from `design_system.styling_patterns`)
 - `.claude/sequences/frontend-data-flow.mmd` — state + API flow Mermaid diagram (top-level, from `data-flow-mapper`)
@@ -56,7 +56,7 @@ All artefacts land in the target project's `.claude/` and the root `CLAUDE.md`. 
 ```text
 /create-frontend-docs                  # materialize latest analysis as docs
 /create-frontend-docs --force-rerun    # force analyze-frontend first, then create (chain)
-/create-frontend-docs --only components # regenerate only frontend-components.md + reference-component-inventory.md
+/create-frontend-docs --only components # regenerate only frontend-components.md + merge into component-registry.json (no inventory.md — dropped 1.4)
 ```
 
 `--only` accepts the same areas as `/analyze-frontend`: `design-system`, `components`, `data-flow`, `architecture`, `framework-idioms`, `feature-flows`, `all`. It filters WRITES — it doesn't re-run analysis. (For re-analyzing + rewriting a single area, use `/update-frontend-docs <area>`.)
@@ -143,7 +143,7 @@ If a JSON section is `null` or SKIP (subagent returned SKIP during analysis), th
 | ---- | ---- | ---- |
 | `.claude/docs/reference-component-creation-template.md` | as-is | `component-creation-template-desktop.md`, `component-creation-template-notifier.md`, `component-creation-template-installer.md` |
 | `.claude/docs/reference-architecture-frontend.md` | as-is | `architecture-frontend-desktop.md`, ...notifier, ...installer |
-| `.claude/docs/reference-component-inventory.md` | as-is | `component-inventory-desktop.md`, ... |
+| ~~`.claude/docs/reference-component-inventory.md`~~ | ~~as-is~~ | ~~`component-inventory-desktop.md`, ...~~ — DROPPED in 1.4. Catalog moved to `component-registry.json`. |
 | `.claude/docs/reference-icon-connection.md` | as-is | `icon-connection-desktop.md`, ... |
 | `.claude/docs/reference-styling-flow.md` | as-is | `styling-flow-desktop.md`, ... |
 | `.claude/rules/frontend-design-system.md` | as-is | `frontend-design-system-desktop.md`, ... |
@@ -188,21 +188,9 @@ Replace `<frontend_root>` with the relative path from the project root (e.g., `a
 Replace `<framework>` and `<relative_root>` with values from `frontend_analysis.json`.
 Write the block as the literal first lines of the file, before any `# Heading`.
 
-**`reference-component-inventory.md` frontmatter** — prepend this block before `# Heading`:
+**`reference-component-inventory.md` — DROPPED in 1.4 (M13).** No longer generated. The per-component catalog (name, path, type, description, uses, lifecycle) now lives in `.claude/state/component-registry.json` as the single source of truth. Component conventions (naming, prop patterns, file structure) live in `.claude/rules/frontend-components.md` as before.
 
-```yaml
----
-generated-by: create-frontend-docs
-frontend-root: <relative_root>
-naming_conventions:
-  component_file: <value from component_inventory.naming_conventions.component_file>
-  css_file: <value from component_inventory.naming_conventions.css_file>
-  class_name: <value from component_inventory.naming_conventions.class_name>
-  directory: <value from component_inventory.naming_conventions.directory>
----
-```
-
-If `component_inventory.naming_conventions` is null, omit the `naming_conventions:` key and write `naming_conventions: null` as a single line.
+The `naming_conventions` block from JSON is preserved as frontmatter ONLY on the rules file (`frontend-components.md`), not on a separate inventory doc.
 
 **Pre-write self-check:** Before calling Write for either rule file, verify the string you are about to write starts with `---` and contains `description:`. If it does not — construct the frontmatter now from the JSON values, prepend it, then write. Do not proceed without `description:`.
 
@@ -217,27 +205,32 @@ Fix in memory before the Write call — do NOT write a broken diagram and fix in
 
 ### Phase: Write component-registry.json
 
-Read `component_inventory.components` list from `frontend-analysis.json`. For each component entry produce a registry record:
+**Source (1.4 — M13):** read `### → .claude/state/component-registry.json` Markdown Content subsection from `component-inventory` agent output (NOT from `component_inventory.components` list — that list no longer exists in JSON as of 1.4).
+
+Parse each YAML entry the scanner emitted and produce a registry record:
 
 ```json
 {
   "name": "<PascalCase component name>",
   "type": "primitive | feature | local",
-  "layer": "<fsd layer or folder slug — e.g. shared/ui, entities, features>",
-  "path": "<relative path from project root to component file>",
+  "path": "<relative path from project root>",
+  "description": "<one-line summary from scanner, ≤200 chars>",
+  "uses": ["<dep-name>", ...],
+  "parent": "<ParentName>" | null,
   "figma_node_id": null,
   "figma_file_key": null,
   "figma_connected": false,
-  "uses": [],
-  "parent": null,
   "created_at": "<ISO-UTC timestamp of this run>",
   "last_verified_at": null,
+  "last_scanned_at": "<ISO-UTC timestamp of this run>",
   "last_figma_sync_at": null,
   "figma_last_modified": null,
   "ssim_score": null,
-  "status": "unverified"
+  "status": "scanned-only"
 }
 ```
+
+> **1.4 changes:** New fields `description` (from scanner) and `last_scanned_at` (write time). New status value `"scanned-only"` (was created by analyze-frontend, not yet managed by component-creator). Removed `layer` field (was 1.3 — replaced by `type` enum).
 
 **Type classification:**
 - `type: "primitive"` — component lives in `shared/ui`, `components/ui`, `common/`, `design-system/`, or has a generic UI name (Button, Input, Modal, Badge, etc.)
@@ -325,7 +318,7 @@ Content of `### Frontend` subsection:
 - Design system tokens: `@.claude/rules/frontend-design-system.md`
 - Component conventions: `@.claude/rules/frontend-components.md`
 - Architecture overview: [.claude/docs/reference-architecture-frontend.md](.claude/docs/reference-architecture-frontend.md)
-- Component inventory: [.claude/docs/reference-component-inventory.md](.claude/docs/reference-component-inventory.md)
+- Component registry: `.claude/state/component-registry.json` (single source of truth for components — name, path, type, description, lifecycle state)
 - Icon connection: [.claude/docs/reference-icon-connection.md](.claude/docs/reference-icon-connection.md)
 - Styling flow: [.claude/docs/reference-styling-flow.md](.claude/docs/reference-styling-flow.md)
 - Data-flow diagram: [.claude/sequences/frontend-data-flow.mmd](.claude/sequences/frontend-data-flow.mmd)

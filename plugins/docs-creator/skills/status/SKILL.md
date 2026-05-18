@@ -124,7 +124,9 @@ Use `git log -1 --format="%cr" -- <file>` per file. Flag any `.claude/` file not
 
 Conditional section — only shown if the project has at least one `frontend-*` artefact. If none are present, the section is omitted entirely (don't show an empty box).
 
-Detection: glob for any of `.claude/rules/frontend-*.md`, `.claude/docs/reference-architecture-frontend*.md`, `.claude/docs/reference-component-inventory*.md`, `.claude/sequences/frontend-data-flow*.mmd`, `.claude/sequences/features/*.mmd`.
+Detection: glob for any of `.claude/rules/frontend-*.md`, `.claude/docs/reference-architecture-frontend*.md`, `.claude/state/component-registry.json`, `.claude/sequences/frontend-data-flow*.mmd`, `.claude/sequences/features/*.mmd`.
+
+> **1.4 (M13):** `.claude/docs/reference-component-inventory*.md` was DROPPED — component catalog now in `component-registry.json`. Status section reads component counts and status distribution from registry directly (jq: `.components | group_by(.status) | map({status: .[0].status, count: length})`). If legacy inventory.md detected, flag as deprecated and suggest `/docs-creator:update-frontend-docs --migrate-inventory-to-registry`.
 
 ```text
   ┌─ Frontend Analysis ───────────────────────────────────────┐

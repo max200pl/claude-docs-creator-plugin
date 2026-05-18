@@ -162,12 +162,15 @@ has_preview_files: <bool>                    # e.g. Sciter `.preview.js` files
 | `ui_library`, `ui_library_integration` | **DROP** — duplicate of `tech_stack.ui_library` |
 | `storybook_present`, `storybook_coverage_pct` | Replaced by `has_storybook` (bool) — drop coverage_pct (low-signal) |
 | `test_colocation`, `primary_prop_type`, `ref_forwarding` | Move to RULES file (Markdown Content) as bulleted observations |
-| `feature_areas`, `feature_views`, `leaf_components`, `sub_views`, `shared_primitives_source` (GB extras) | NARRATIVE — Markdown Content → `.claude/docs/reference-component-inventory-<root>.md` |
-| `shared_components`, `view_components` (PC narrative lists) | NARRATIVE — Markdown Content |
-| `components` (Sc-only enum) | NARRATIVE — Markdown Content |
+| `feature_areas`, `feature_views`, `leaf_components`, `sub_views`, `shared_primitives_source` (GB extras) | **MOVED to registry.json** as per-entry `type` + `description` (1.4) |
+| `shared_components`, `view_components` (PC narrative lists) | **MOVED to registry.json** as per-entry entries |
+| `components` (Sc-only enum) | **MOVED to registry.json** |
 | `new_since_last_doc` | Top-level `drift.component_inventory` |
+| `canonical_skeleton` (1.3) | **DROPPED in 1.4** — derived on-demand from registry (query first `status: "managed"` OR `type: "primitive"`) |
 
-### Stream 2 — Markdown Content
+### Stream 2 — Markdown Content (schema 1.4 — registry merge + rules)
+
+> **1.4 change (M13):** the per-component catalog (with descriptions) now flows to `.claude/state/component-registry.json` instead of `reference-component-inventory-<root>.md`. The inventory.md artefact is DROPPED. Rules content still routes to `frontend-components-<root>.md`.
 
 ```markdown
 ## Markdown Content
@@ -190,17 +193,38 @@ has_preview_files: <bool>                    # e.g. Sciter `.preview.js` files
 
 #### (other observed RULES — varies per project)
 
-### → `.claude/docs/reference-component-inventory-<root>.md` (NARRATIVE file)
+### → `.claude/state/component-registry.json` (REGISTRY merge — 1.4 NEW)
 
-(Table of notable components + descriptions for human reference. Per-component summary, file paths, prop shapes. The agent-facing JSON has only counts; this doc has the catalog.)
+(Per-component entries; orchestrator MERGES into existing registry.json. See `reference-frontend-analysis-schema.md` § Component Registry Schema for the canonical entry shape + merge rules.)
 
-#### Notable components
+For each observed component, emit a YAML entry (orchestrator converts to JSON when merging):
 
-| Name | Path | Description |
-| ---- | ---- | ---- |
-| Button | src/components/Button/Button.tsx | Generic CTA button with 3 variants |
-| ... | ... | ... |
+```yaml
+- name: "<ComponentName>"                # PascalCase typically
+  path: "<relative path from project root>"  # e.g. "src/components/Button/Button.tsx"
+  type: "primitive" | "feature" | "local"    # classification
+  description: "<≤200 chars one-line>"   # what the component does, where it's used
+  uses: ["<dep-component-name>", ...]    # composition: components this one renders
+  parent: "<ParentName>" | null          # for type:local — name of host component
 ```
+
+Merge rules (orchestrator):
+
+- **New entry** (no `name` or `path` match in registry) → ADD with `status: "scanned-only"`, `last_scanned_at: now()`, `created_at: now()`
+- **Existing entry** (matches by `path` or by `name+type`) → UPDATE `name`/`path`/`type`/`description`/`uses[]`; PRESERVE lifecycle fields (`status`, `figma_*`, `ssim_score`, `created_at`, `last_verified_at`, `last_figma_sync_at`)
+- **Was in registry but file missing** → UPDATE `status: "stale"`; do NOT delete
+
+Coverage rules:
+
+- Emit ALL components found during scan (don't filter — registry tracks everything, status distinguishes managed vs scanned-only)
+- Include leaf components, layouts, pages, widgets — every distinct component file
+- For composite/nested components: emit each as separate entry; populate `parent` for type:local nested components
+- Description rule: write what this component DOES, not how it looks (e.g. "Primary action button with 3 variants" ✓; "Round blue button" ✗)
+```
+
+**NOT emitted** (legacy 1.3 — kept here for migration context, but DROPPED in 1.4):
+
+- ~~`### → .claude/docs/reference-component-inventory-<root>.md`~~ — artefact dropped; data moved to registry
 
 ### Rule file frontmatter (orchestrator prepends — do NOT include in agent output)
 
